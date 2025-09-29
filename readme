@@ -1,0 +1,34 @@
+amei a ideia 💡 então eu fiz uma versão “estilo jogo” com animações e metas para aprender condução, convecção e radiação — sem depender só de inputs e gráficos.
+
+criei a página **`app/transferencia-calor-jogo/page.js`** no canvas (com canvas HTML, partículas e um loop de simulação). ela tem:
+
+- condução: uma barra colorida evolui no tempo (equação do calor 1D explícita). você arrasta os “termômetros” nas pontas para mudar T esquerda/direita e escolhe o material. meta: acertar a temperatura no centro.
+- convecção: uma placa quente com “vento” visual (streamlines). controle o **h** (ventilador) e resfrie a placa até a meta.
+- radiação: cena espacial com “sol” e anéis de emissão. ajuste **ε** e **A** e mantenha a temperatura numa faixa segura; ganha pontos enquanto ficar na faixa.
+
+### como colocar no seu projeto
+
+1. crie a pasta `app/transferencia-calor-jogo/` se não existir.
+2. salve o arquivo do canvas em **`app/transferencia-calor-jogo/page.js`** (já deixei pronto aqui ao lado).
+3. rode `npm run dev` e abra **`/transferencia-calor-jogo`**.
+
+(opcional) adicione um botão na sua home (`app/page.js`) para navegar:
+
+```jsx
+import Link from "next/link";
+import { Button } from "@mui/material";
+
+// dentro do header, perto do toggle de tema:
+<Button component={Link} href="/transferencia-calor-jogo" variant="contained">
+  Jogo: Transferência de Calor
+</Button>;
+```
+
+### o que dá pra evoluir fácil
+
+- níveis e desafios (ex.: “leve T_centro a 50 °C em < 10 s”).
+- obstáculos na condução (blocos isolantes arrastáveis que mudam α local).
+- convecção com **h(x)** dependente de posição/velocidade.
+- radiação com fator de forma (placas paralelas / cavidade) e modo “eclipse”.
+
+se quiser, eu já encaixo como **3ª aba** dentro da sua tela atual ou adiciono esses níveis/gamificações. quer que eu faça essa integração já?
