@@ -1,9 +1,7 @@
-// app/page.js
 'use client';
 
 import * as React from 'react';
 import PressureChart from './components/PressureChart';
-import UfscSolver from './components/UfscSolver';
 import HeatPlaygroundPage from './components/HeatPlaygroundPage';
 import HeatTransferLab from './components/HeatTransferLab';
 import MaterialPropertiesLab from './components/MaterialPropertiesLab';
@@ -146,12 +144,70 @@ export default function Home() {
     setNPontos(51);
   };
 
+  // ---------- Layout principal (sem Grid para o miolo) ----------
+  const mainAreaRef = React.useRef(null);
+  const floatingRef = React.useRef(null);
+
+  const [floatPos, setFloatPos] = React.useState({ x: 16, y: 16 });
+  const dragStateRef = React.useRef({ active: false, origin: {x: 0, y: 0}, start: {x: 0, y: 0} });
+
+  const clampToBounds = React.useCallback((x, y) => {
+    const cont = mainAreaRef.current;
+    const card = floatingRef.current;
+    if (!cont || !card) return { x, y };
+    const cw = cont.clientWidth;
+    const ch = cont.clientHeight;
+    const rw = card.offsetWidth;
+    const rh = card.offsetHeight;
+    return {
+      x: Math.min(Math.max(0, x), Math.max(0, cw - rw)),
+      y: Math.min(Math.max(0, y), Math.max(0, ch - rh))
+    };
+  }, []);
+
+  const handlePointerDown = (e) => {
+    if (!e.currentTarget.dataset.draghandle) return;
+    dragStateRef.current.active = true;
+    dragStateRef.current.origin = { x: e.clientX, y: e.clientY };
+    dragStateRef.current.start = { ...floatPos };
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+  };
+  const handlePointerMove = (e) => {
+    if (!dragStateRef.current.active) return;
+    const dx = e.clientX - dragStateRef.current.origin.x;
+    const dy = e.clientY - dragStateRef.current.origin.y;
+    const next = clampToBounds(dragStateRef.current.start.x + dx, dragStateRef.current.start.y + dy);
+    setFloatPos(next);
+  };
+  const handlePointerUp = () => {
+    dragStateRef.current.active = false;
+    window.removeEventListener('pointermove', handlePointerMove);
+    window.removeEventListener('pointerup', handlePointerUp);
+  };
+  React.useEffect(() => () => handlePointerUp(), []);
+  React.useEffect(() => {
+    const onResize = () => setFloatPos(pos => clampToBounds(pos.x, pos.y));
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [clampToBounds]);
+
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      {/* Header com tema */}
+    <Container
+      maxWidth={false}
+      disableGutters
+      sx={{
+        py: 4,
+        px: { xs: 2, sm: 3 },
+        minHeight: '100dvh',
+        display: 'flex',
+        flexDirection: 'column'
+      }}
+    >
+      {/* Header */}
       <Grid container spacing={3} alignItems="center" sx={{ mb: 1 }}>
         <Grid item xs={12} md="auto">
-          <Typography variant="h4" fontWeight={700}>Laboratório Hidro & Solver</Typography>
+          <Typography variant="h4" fontWeight={700}>FETRANS Lab</Typography>
         </Grid>
         <Grid item xs />
         <Grid item>
@@ -176,17 +232,32 @@ export default function Home() {
         sx={{ mb: 2 }}
       >
         <Tab label="Simulador de Pressão" value="simulador" />
-        <Tab label="Solucionador UFSC" value="solver" />
         <Tab label="Laboratório de Transferência de Calor" value="HeatTransferLab" />
-        <Tab label="Playground de Calor" value="HeatPlayground" />
         <Tab label="Laboratório de Propriedades" value="MaterialPropertiesLab" />
+        <Tab label="Playground de Calor" value="HeatPlayground" />
       </Tabs>
 
       {tab === 'simulador' && (
-        <Grid container spacing={3}>
-          {/* Parâmetros */}
-          <Grid item xs={12} md={5} lg={4}>
-            <Card>
+        // ---- LINHA ÚNICA: sidebar esquerda + área do gráfico à direita ----
+        <Box
+          sx={{
+            flex: 1,
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'row',
+            gap: 3
+          }}
+        >
+          {/* Sidebar de parâmetros (largura fixa) */}
+          <Box
+            sx={{
+              width: { xs: 320, md: 360, lg: 380 },
+              flexShrink: 0,
+              display: 'flex',
+              minHeight: 0
+            }}
+          >
+            <Card sx={{ flex: 1, minHeight: 0 }}>
               <CardHeader title="Parâmetros" />
               <CardContent>
                 <Stack spacing={2}>
@@ -283,28 +354,54 @@ export default function Home() {
                 </Stack>
               </CardContent>
             </Card>
-          </Grid>
+          </Box>
 
-          {/* Resultado & Gráfico */}
-          <Grid item xs={12} md={7} lg={8}>
-            <Card sx={{ mb: 3 }}>
+          {/* Área do gráfico (preenche o resto) */}
+          <Box
+            ref={mainAreaRef}
+            sx={{
+              position: 'relative',
+              flex: 1,
+              minWidth: 0,
+              minHeight: 0,
+              display: 'flex'
+            }}
+          >
+            {/* Card flutuante, arrastável e fora de qualquer coluna */}
+            <Card
+              ref={floatingRef}
+              sx={{
+                position: 'absolute',
+                left: floatPos.x,
+                top: floatPos.y,
+                maxWidth: 520,
+                boxShadow: 6,
+                cursor: 'grab',
+                backdropFilter: 'blur(6px)',
+                backgroundColor: theme => alpha(theme.palette.background.paper, 0.9),
+                zIndex: 3,
+              }}
+            >
               <CardHeader
                 title="Resultados instantâneos"
                 action={
                   <Tooltip title="Modelo: P(h) = P₀ + ρ·g·h">
-                    <IconButton><InfoOutlinedIcon /></IconButton>
+                    <IconButton size="small"><InfoOutlinedIcon /></IconButton>
                   </Tooltip>
                 }
+                sx={{ cursor: 'grab', userSelect: 'none', py: 1.2 }}
+                onPointerDown={handlePointerDown}
+                data-draghandle
               />
-              <CardContent>
+              <CardContent sx={{ pt: 0 }}>
                 <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
+                  <Grid item xs={12} sm={6}>
                     <Typography variant="body2" color="text.secondary">Pressão no topo (h = 0):</Typography>
                     <Typography variant="h5">
                       {formatNumber(toSelectedUnit(topoPa, unidadeSaida))} {unidadeSaida}
                     </Typography>
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid item xs={12} sm={6}>
                     <Typography variant="body2" color="text.secondary">Pressão no fundo (h = {altura.toFixed(2)} m):</Typography>
                     <Typography variant="h5">
                       {formatNumber(toSelectedUnit(fundoPa, unidadeSaida))} {unidadeSaida}
@@ -312,53 +409,49 @@ export default function Home() {
                   </Grid>
                 </Grid>
 
-                <Box sx={{ mt: 2 }}>
+                <Box sx={{ mt: 1.5 }}>
                   <Typography variant="body2" color="text.secondary">
-                    Fórmula: <b>P(h) = P₀ + ρ·g·h</b>, onde P₀ = {p0Ativo ? `${formatNumber(toSelectedUnit(p0Pa, unidadeSaida))} ${unidadeSaida}` : '0'} ·
-                    {' '}ρ = {formatNumber(rho)} kg/m³ · g = {g.toFixed(4)} m/s² · h em metros.
+                    Fórmula: <b>P(h) = P₀ + ρ·g·h</b>, onde P₀ = {p0Ativo ? `${formatNumber(toSelectedUnit(p0Pa, unidadeSaida))} ${unidadeSaida}` : '0'} ·{' '}
+                    ρ = {formatNumber(rho)} kg/m³ · g = {g.toFixed(4)} m/s² · h em metros.
                   </Typography>
                 </Box>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader title="Gráfico" subheader="Pressão em função da profundidade" />
-              <CardContent>
-                <Box sx={{ width: '100%', height: 420 }}>
+            {/* Card do gráfico ocupando tudo à direita */}
+            {/* Card do gráfico ocupando tudo à direita (header em cima) */}
+            <Card sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+              <CardHeader
+                title="Gráfico"
+                subheader="Pressão em função da profundidade"
+                // garante alinhamento à esquerda em qualquer tema
+                titleTypographyProps={{ align: 'left' }}
+                subheaderTypographyProps={{ align: 'left' }}
+              />
+              <CardContent sx={{ flex: 1, minHeight: 0, p: 0 }}>
+                <Box sx={{ width: '100%', height: '100%' }}>
                   <PressureChart data={chartData} options={chartOptions} />
                 </Box>
               </CardContent>
             </Card>
-          </Grid>
 
-          <Grid item xs={12}>
-            <Box sx={{ mt: 3 }}>
-              <Typography variant="body2" color="text.secondary">
-                Observação: este simulador assume fluido incompressível e temperatura constante.
-                Para gases ou variações grandes de pressão/temperatura, use modelos termodinâmicos adequados.
-              </Typography>
-            </Box>
-          </Grid>
-        </Grid>
-      )}
-
-      {tab === 'solver' && (
-        <Box>
-          <UfscSolver />
+          </Box>
         </Box>
       )}
+
+      {/* Outras abas (inalteradas) */}
       {tab === 'HeatTransferLab' && (
-        <Box>
+        <Box sx={{ flex: 1, minHeight: 0 }}>
           <HeatTransferLab />
         </Box>
       )}
       {tab === 'HeatPlayground' && (
-        <Box>
+        <Box sx={{ flex: 1, minHeight: 0 }}>
           <HeatPlaygroundPage />
         </Box>
       )}
       {tab === 'MaterialPropertiesLab' && (
-        <Box>
+        <Box sx={{ flex: 1, minHeight: 0 }}>
           <MaterialPropertiesLab />
         </Box>
       )}

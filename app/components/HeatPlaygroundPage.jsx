@@ -439,17 +439,6 @@ export default function HeatPlaygroundPage() {
           <Typography variant="body2" color="text.secondary">Aprenda brincando: condução, convecção e radiação com metas e pontuação.</Typography>
         </Grid>
         <Grid item xs />
-        <Grid item>
-          <ToggleButtonGroup
-            value={mode}
-            exclusive
-            onChange={(_, val) => { if (val) setMode(val); }}
-            size="small"
-          >
-            <ToggleButton value="light" aria-label="tema-claro"><LightModeIcon /></ToggleButton>
-            <ToggleButton value="dark" aria-label="tema-escuro"><DarkModeIcon /></ToggleButton>
-          </ToggleButtonGroup>
-        </Grid>
       </Grid>
 
       {/* Abas de modo */}

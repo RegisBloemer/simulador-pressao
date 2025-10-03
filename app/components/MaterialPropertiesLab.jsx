@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Card,
   CardContent,
+  CardHeader,
   Typography,
   Slider,
   FormControl,
@@ -24,6 +25,7 @@ import {
   FormControlLabel,
   Tooltip,
   IconButton,
+  Divider,
 } from '@mui/material';
 import {
   LineChart,
@@ -130,6 +132,17 @@ const PROPERTY_LABELS = {
   viscosity: 'Viscosidade',
 };
 
+// normalização para o radar (0–100)
+function normalizeValue(prop, raw) {
+  if (raw == null || !isFinite(raw)) return 0;
+  switch (prop) {
+    case 'density':             return Math.min(raw / 100, 100);
+    case 'specificHeat':        return Math.min(raw / 50, 100);
+    case 'thermalConductivity': return Math.min(raw * 2, 100);
+    default: return 0;
+  }
+}
+
 export default function MaterialPropertiesLab() {
   const [temperature, setTemperature] = useState(25);
   const [selectedMaterials, setSelectedMaterials] = useState(['agua', 'aco', 'aluminio']);
@@ -137,7 +150,7 @@ export default function MaterialPropertiesLab() {
   const [showComparison, setShowComparison] = useState(true);
   const [temperatureRange, setTemperatureRange] = useState([0, 100]);
 
-  // Gera dados para gráficos
+  // Dados para o gráfico de linha
   const generateChartData = () => {
     const data = [];
     for (let T = temperatureRange[0]; T <= temperatureRange[1]; T += 5) {
@@ -145,171 +158,174 @@ export default function MaterialPropertiesLab() {
       selectedMaterials.forEach(materialKey => {
         const material = MATERIALS_DATABASE[materialKey];
         const value = material[selectedProperty](T);
-        if (value !== null) {
-          point[material.name] = Number(value.toFixed(3));
-        }
+        if (value !== null) point[material.name] = Number(value.toFixed(3));
       });
       data.push(point);
     }
     return data;
   };
 
-  // Gera dados para radar chart (comparação)
-  const generateRadarData = () => {
-    const properties = ['density', 'specificHeat', 'thermalConductivity'];
-    return selectedMaterials.map(materialKey => {
-      const material = MATERIALS_DATABASE[materialKey];
-      const dataPoint = {
-        material: material.name,
-        color: material.color,
-      };
-      
-      properties.forEach(prop => {
-        const value = material[prop](temperature);
-        if (value !== null) {
-          // Normaliza os valores para escala 0-100
-          let normalizedValue;
-          switch(prop) {
-            case 'density':
-              normalizedValue = Math.min(value / 100, 100);
-              break;
-            case 'specificHeat':
-              normalizedValue = Math.min(value / 50, 100);
-              break;
-            case 'thermalConductivity':
-              normalizedValue = Math.min(value * 2, 100);
-              break;
-            default:
-              normalizedValue = value;
-          }
-          dataPoint[PROPERTY_LABELS[prop]] = normalizedValue;
-        }
+  // Dados para o RadarChart (um array com subjects e colunas por material)
+  const radarSubjects = [
+    { subject: 'Densidade', prop: 'density' },
+    { subject: 'Calor Específico', prop: 'specificHeat' },
+    { subject: 'Condutividade Térmica', prop: 'thermalConductivity' },
+  ];
+
+  const generateRadarChartData = () => {
+    return radarSubjects.map(({ subject, prop }) => {
+      const row = { subject };
+      selectedMaterials.forEach(materialKey => {
+        const material = MATERIALS_DATABASE[materialKey];
+        const raw = material[prop](temperature);
+        row[material.name] = normalizeValue(prop, raw);
       });
-      
-      return dataPoint;
+      return row;
     });
   };
 
   const handleMaterialToggle = (materialKey) => {
-    setSelectedMaterials(prev => 
-      prev.includes(materialKey) 
+    setSelectedMaterials(prev =>
+      prev.includes(materialKey)
         ? prev.filter(m => m !== materialKey)
         : [...prev, materialKey]
     );
   };
 
   const chartData = generateChartData();
-  const radarData = generateRadarData();
+  const radarChartData = generateRadarChartData();
 
   return (
-    <Box sx={{ maxWidth: 1400, mx: 'auto', p: 3 }}>
+    <Box
+      sx={{
+        px: { xs: 2, sm: 3 },
+        py: 4,
+        minHeight: '100dvh',
+        maxWidth: '100%',
+        mx: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 3
+      }}
+    >
       {/* Header */}
-      <Box sx={{ mb: 4, textAlign: 'center' }}>
-        <Typography variant="h3" gutterBottom sx={{ 
-          background: 'linear-gradient(45deg, #FF6B6B, #4ECDC4)',
-          backgroundClip: 'text',
-          WebkitBackgroundClip: 'text',
-          color: 'transparent',
-          fontWeight: 'bold'
-        }}>
+      <Box sx={{ textAlign: 'center' }}>
+        <Typography
+          variant="h3"
+          gutterBottom
+          sx={{
+            background: 'linear-gradient(45deg, #FF6B6B, #4ECDC4)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            color: 'transparent',
+            fontWeight: 'bold'
+          }}
+        >
           <Science sx={{ fontSize: 48, mr: 2, verticalAlign: 'middle', color: '#FF6B6B' }} />
           Laboratório de Propriedades dos Materiais
         </Typography>
-        <Typography variant="h6" color="textSecondary">
+        <Typography variant="h6" color="text.secondary">
           Explore como as propriedades dos materiais variam com a temperatura
         </Typography>
       </Box>
 
-      {/* Controles */}
-      <Card sx={{ mb: 3, p: 2 }}>
-        <Grid container spacing={3} alignItems="center">
-          <Grid item xs={12} md={3}>
-            <Typography gutterBottom>Temperatura: {temperature}°C</Typography>
-            <Slider
-              value={temperature}
-              onChange={(e, value) => setTemperature(value)}
-              min={-20}
-              max={200}
-              step={1}
-              marks={[
-                { value: 0, label: '0°C' },
-                { value: 100, label: '100°C' },
-                { value: 200, label: '200°C' }
-              ]}
-            />
-          </Grid>
+      {/* Layout principal: sidebar à esquerda + área de gráficos à direita */}
+      <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'row', gap: 3 }}>
+        {/* Sidebar (controles, seleção, tabela, descrições) */}
+        <Box sx={{ width: { xs: '100%', md: 360, lg: 380 }, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 3, minHeight: 0 }}>
+          {/* Controles */}
+          <Card>
+            <CardContent>
+              <Grid container spacing={3} alignItems="center">
+                <Grid item xs={12}>
+                  <Typography gutterBottom>Temperatura: {temperature}°C</Typography>
+                  <Slider
+                    value={temperature}
+                    onChange={(_, value) => setTemperature(value)}
+                    min={-20}
+                    max={200}
+                    step={1}
+                    marks={[
+                      { value: 0, label: '0°C' },
+                      { value: 100, label: '100°C' },
+                      { value: 200, label: '200°C' }
+                    ]}
+                  />
+                </Grid>
 
-          <Grid item xs={12} md={3}>
-            <FormControl fullWidth>
-              <InputLabel>Propriedade</InputLabel>
-              <Select
-                value={selectedProperty}
-                onChange={(e) => setSelectedProperty(e.target.value)}
-              >
-                <MenuItem value="density">Densidade</MenuItem>
-                <MenuItem value="specificHeat">Calor Específico</MenuItem>
-                <MenuItem value="thermalConductivity">Condutividade Térmica</MenuItem>
-                <MenuItem value="viscosity">Viscosidade</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
+                <Grid item xs={12}>
+                  <FormControl fullWidth>
+                    <InputLabel>Propriedade</InputLabel>
+                    <Select
+                      value={selectedProperty}
+                      label="Propriedade"
+                      onChange={(e) => setSelectedProperty(e.target.value)}
+                    >
+                      <MenuItem value="density">Densidade</MenuItem>
+                      <MenuItem value="specificHeat">Calor Específico</MenuItem>
+                      <MenuItem value="thermalConductivity">Condutividade Térmica</MenuItem>
+                      <MenuItem value="viscosity">Viscosidade</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
 
-          <Grid item xs={12} md={3}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={showComparison}
-                  onChange={(e) => setShowComparison(e.target.checked)}
-                />
-              }
-              label="Modo Comparação"
-            />
-          </Grid>
+                <Grid item xs={12}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={showComparison}
+                        onChange={(e) => setShowComparison(e.target.checked)}
+                      />
+                    }
+                    label="Modo Comparação"
+                  />
+                </Grid>
 
-          <Grid item xs={12} md={3}>
-            <Typography variant="body2" color="textSecondary">
-              Faixa de Temperatura para Gráficos
-            </Typography>
-            <Slider
-              value={temperatureRange}
-              onChange={(e, value) => setTemperatureRange(value)}
-              min={-20}
-              max={300}
-              step={10}
-              valueLabelDisplay="auto"
-              valueLabelFormat={(value) => `${value}°C`}
-            />
-          </Grid>
-        </Grid>
-      </Card>
+                <Grid item xs={12}>
+                  <Typography variant="body2" color="text.secondary">
+                    Faixa de Temperatura para Gráficos
+                  </Typography>
+                  <Slider
+                    value={temperatureRange}
+                    onChange={(_, value) => setTemperatureRange(value)}
+                    min={-20}
+                    max={300}
+                    step={10}
+                    valueLabelDisplay="auto"
+                    valueLabelFormat={(value) => `${value}°C`}
+                  />
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
 
-      {/* Seleção de Materiais */}
-      <Card sx={{ mb: 3, p: 2 }}>
-        <Typography variant="h6" gutterBottom>
-          <Compare sx={{ mr: 1, verticalAlign: 'middle' }} />
-          Selecione os Materiais
-        </Typography>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-          {Object.entries(MATERIALS_DATABASE).map(([key, material]) => (
-            <Chip
-              key={key}
-              label={material.name}
-              onClick={() => handleMaterialToggle(key)}
-              color={selectedMaterials.includes(key) ? 'primary' : 'default'}
-              variant={selectedMaterials.includes(key) ? 'filled' : 'outlined'}
-              sx={{ 
-                backgroundColor: selectedMaterials.includes(key) ? material.color : 'transparent',
-                color: selectedMaterials.includes(key) ? 'white' : 'inherit',
-                fontWeight: selectedMaterials.includes(key) ? 'bold' : 'normal'
-              }}
-            />
-          ))}
-        </Box>
-      </Card>
+          {/* Seleção de Materiais */}
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                <Compare sx={{ mr: 1, verticalAlign: 'middle' }} />
+                Selecione os Materiais
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {Object.entries(MATERIALS_DATABASE).map(([key, material]) => (
+                  <Chip
+                    key={key}
+                    label={material.name}
+                    onClick={() => handleMaterialToggle(key)}
+                    color={selectedMaterials.includes(key) ? 'primary' : 'default'}
+                    variant={selectedMaterials.includes(key) ? 'filled' : 'outlined'}
+                    sx={{
+                      backgroundColor: selectedMaterials.includes(key) ? material.color : 'transparent',
+                      color: selectedMaterials.includes(key) ? 'white' : 'inherit',
+                      fontWeight: selectedMaterials.includes(key) ? 'bold' : 'normal'
+                    }}
+                  />
+                ))}
+              </Box>
+            </CardContent>
+          </Card>
 
-      <Grid container spacing={3}>
-        {/* Tabela de Propriedades */}
-        <Grid item xs={12} md={6}>
+          {/* Tabela de Propriedades */}
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -364,88 +380,8 @@ export default function MaterialPropertiesLab() {
               </TableContainer>
             </CardContent>
           </Card>
-        </Grid>
 
-        {/* Gráfico de Variação com Temperatura */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                {PROPERTY_LABELS[selectedProperty]} vs Temperatura
-              </Typography>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="temperature" 
-                    label={{ value: 'Temperatura (°C)', position: 'insideBottom', offset: -5 }}
-                  />
-                  <YAxis 
-                    label={{ 
-                      value: `${PROPERTY_LABELS[selectedProperty]} (${PROPERTY_UNITS[selectedProperty]})`, 
-                      angle: -90, 
-                      position: 'insideLeft' 
-                    }}
-                  />
-                  <RechartsTooltip />
-                  <Legend />
-                  {selectedMaterials.map(materialKey => {
-                    const material = MATERIALS_DATABASE[materialKey];
-                    return (
-                      <Line
-                        key={materialKey}
-                        type="monotone"
-                        dataKey={material.name}
-                        stroke={material.color}
-                        strokeWidth={3}
-                        dot={{ fill: material.color, strokeWidth: 2, r: 4 }}
-                      />
-                    );
-                  })}
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Radar Chart para Comparação */}
-        {showComparison && (
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Comparação Multidimensional a {temperature}°C
-                </Typography>
-                <ResponsiveContainer width="100%" height={300}>
-                  <RadarChart data={radarData[0] ? [radarData[0]] : []}>
-                    <PolarGrid />
-                    <PolarAngleAxis dataKey="subject" />
-                    <PolarRadiusAxis angle={90} domain={[0, 100]} />
-                    {radarData.map((data, index) => (
-                      <Radar
-                        key={index}
-                        name={data.material}
-                        dataKey="value"
-                        stroke={data.color}
-                        fill={data.color}
-                        fillOpacity={0.1}
-                        strokeWidth={2}
-                        data={[
-                          { subject: 'Densidade', value: data['Densidade'] || 0 },
-                          { subject: 'Calor Específico', value: data['Calor Específico'] || 0 },
-                          { subject: 'Condutividade', value: data['Condutividade Térmica'] || 0 },
-                        ]}
-                      />
-                    ))}
-                  </RadarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </Grid>
-        )}
-
-        {/* Descrições dos Materiais */}
-        <Grid item xs={12} md={6}>
+          {/* Descrições dos Materiais */}
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -459,7 +395,7 @@ export default function MaterialPropertiesLab() {
                     <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: material.color }}>
                       {material.name}
                     </Typography>
-                    <Typography variant="body2" color="textSecondary">
+                    <Typography variant="body2" color="text.secondary">
                       {material.description}
                     </Typography>
                     <Chip size="small" label={material.category} sx={{ mt: 1 }} />
@@ -468,8 +404,104 @@ export default function MaterialPropertiesLab() {
               })}
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+        </Box>
+
+        {/* Área de gráficos (direita) */}
+        <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {/* Gráfico de Variação com Temperatura */}
+          <Card sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+            <CardHeader
+              title={`${PROPERTY_LABELS[selectedProperty]} vs Temperatura`}
+              subheader={`Faixa ${temperatureRange[0]}–${temperatureRange[1]} °C`}
+              titleTypographyProps={{ align: 'left' }}
+              subheaderTypographyProps={{ align: 'left' }}
+            />
+            <CardContent sx={{ flex: 1, minHeight: 0, p: 0 }}>
+              <Box sx={{ width: '100%', height: '100%' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="temperature"
+                      label={{ value: 'Temperatura (°C)', position: 'insideBottom', offset: -5 }}
+                    />
+                    <YAxis
+                      label={{
+                        value: `${PROPERTY_LABELS[selectedProperty]} (${PROPERTY_UNITS[selectedProperty]})`,
+                        angle: -90,
+                        position: 'insideLeft'
+                      }}
+                    />
+                    <RechartsTooltip />
+                    <Legend />
+                    {selectedMaterials.map(materialKey => {
+                      const material = MATERIALS_DATABASE[materialKey];
+                      return (
+                        <Line
+                          key={materialKey}
+                          type="monotone"
+                          dataKey={material.name}
+                          stroke={material.color}
+                          strokeWidth={3}
+                          dot={{ fill: material.color, strokeWidth: 2, r: 3 }}
+                          isAnimationActive={false}
+                        />
+                      );
+                    })}
+                  </LineChart>
+                </ResponsiveContainer>
+              </Box>
+            </CardContent>
+          </Card>
+
+          {/* Radar Chart para Comparação */}
+          {showComparison && (
+            <Card sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+              <CardHeader
+                title={`Comparação Multidimensional a ${temperature}°C`}
+                subheader="Escala normalizada (0–100)"
+                titleTypographyProps={{ align: 'left' }}
+                subheaderTypographyProps={{ align: 'left' }}
+              />
+              <CardContent sx={{ flex: 1, minHeight: 0, p: 0 }}>
+                <Box sx={{ width: '100%', height: '100%' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart data={radarChartData}>
+                      <PolarGrid />
+                      <PolarAngleAxis dataKey="subject" />
+                      <PolarRadiusAxis angle={90} domain={[0, 100]} />
+                      {selectedMaterials.map((materialKey) => {
+                        const m = MATERIALS_DATABASE[materialKey];
+                        return (
+                          <Radar
+                            key={materialKey}
+                            name={m.name}
+                            dataKey={m.name}      // <- cada coluna é um material
+                            stroke={m.color}
+                            fill={m.color}
+                            fillOpacity={0.1}
+                            strokeWidth={2}
+                            isAnimationActive={false}
+                          />
+                        );
+                      })}
+                      <Legend />
+                      <RechartsTooltip />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </Box>
+              </CardContent>
+            </Card>
+          )}
+        </Box>
+      </Box>
+
+      <Divider />
+      <Typography variant="body2" color="text.secondary">
+        Observações: Condução e convecção requerem meio material e gradientes de temperatura; a radiação é emitida pela matéria e
+        se propaga sem necessidade de meio material (funciona inclusive no vácuo). Os modelos aqui mostrados são simplificados e
+        úteis para visualização rápida.
+      </Typography>
     </Box>
   );
 }
