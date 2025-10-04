@@ -65,7 +65,12 @@ export default function HeatTransferLab() {
       borderColor: alpha(theme.palette.primary.main, 0.9),
       fill: false,
       tension: 0.15,
-      pointRadius: 0
+      pointRadius: 4,
+      pointHoverRadius: 7,
+      pointHitRadius: 12,
+      pointBorderWidth: 2,
+      pointBackgroundColor: theme.palette.background.paper,
+      pointBorderColor: theme.palette.primary.main,
     }]
   }), [xCond, Tprofile, theme]);
 
@@ -115,7 +120,12 @@ export default function HeatTransferLab() {
       borderColor: alpha(theme.palette.secondary.main, 0.9),
       fill: false,
       tension: 0.0,
-      pointRadius: 0
+      pointRadius: 4,
+      pointHoverRadius: 7,
+      pointHitRadius: 12,
+      pointBorderWidth: 2,
+      pointBackgroundColor: theme.palette.background.paper,
+      pointBorderColor: theme.palette.secondary.main,
     }]
   }), [xConv, qFluxConv, theme]);
 
@@ -165,7 +175,12 @@ export default function HeatTransferLab() {
       borderColor: alpha(theme.palette.error.main, 0.9),
       fill: false,
       tension: 0.0,
-      pointRadius: 0
+      pointRadius: 4,
+      pointHoverRadius: 7,
+      pointHitRadius: 12,
+      pointBorderWidth: 2,
+      pointBackgroundColor: theme.palette.background.paper,
+      pointBorderColor: theme.palette.error.main,
     }]
   }), [xRad, qFluxRad, theme]);
 
@@ -210,18 +225,7 @@ export default function HeatTransferLab() {
         <Grid item xs={12} md="auto">
           <Typography variant="h4" fontWeight={700}>Laboratório de Transferência de Calor</Typography>
         </Grid>
-        <Grid item xs />
-        <Grid item>
-          <ToggleButtonGroup
-            value={mode}
-            exclusive
-            onChange={(_, v) => { if (v) setMode(v); }}
-            size="small"
-          >
-            <ToggleButton value="light" aria-label="tema-claro"><LightModeIcon /></ToggleButton>
-            <ToggleButton value="dark" aria-label="tema-escuro"><DarkModeIcon /></ToggleButton>
-          </ToggleButtonGroup>
-        </Grid>
+        <Grid item xs />  
       </Grid>
 
       {/* Abas */}

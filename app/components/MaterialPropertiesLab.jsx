@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   Card,
@@ -23,10 +23,9 @@ import {
   Paper,
   Switch,
   FormControlLabel,
-  Tooltip,
-  IconButton,
   Divider,
 } from '@mui/material';
+import { useTheme, alpha } from '@mui/material/styles';
 import {
   LineChart,
   Line,
@@ -44,11 +43,10 @@ import {
 } from 'recharts';
 import { Info, Compare, Science } from '@mui/icons-material';
 
-// Base de dados de materiais com propriedades dependentes da temperatura
+// ---------- Base de dados (funções de propriedades) ----------
 const MATERIALS_DATABASE = {
   agua: {
     name: 'Água',
-    color: '#2196F3',
     category: 'Líquido',
     density: (T) => 1000 - 0.3 * (T - 20), // kg/m³
     specificHeat: (T) => 4180 + 0.5 * (T - 20), // J/kg·K
@@ -58,17 +56,15 @@ const MATERIALS_DATABASE = {
   },
   aco: {
     name: 'Aço Carbono',
-    color: '#424242',
     category: 'Metal',
     density: (T) => 7850 - 0.4 * (T - 20),
     specificHeat: (T) => 460 + 0.3 * (T - 20),
     thermalConductivity: (T) => 50 - 0.02 * (T - 20),
-    viscosity: () => null, // Sólido
+    viscosity: () => null,
     description: 'Material estrutural comum na engenharia',
   },
   aluminio: {
     name: 'Alumínio',
-    color: '#90A4AE',
     category: 'Metal',
     density: (T) => 2700 - 0.6 * (T - 20),
     specificHeat: (T) => 900 + 0.2 * (T - 20),
@@ -78,7 +74,6 @@ const MATERIALS_DATABASE = {
   },
   cobre: {
     name: 'Cobre',
-    color: '#FF7043',
     category: 'Metal',
     density: (T) => 8960 - 0.5 * (T - 20),
     specificHeat: (T) => 385 + 0.1 * (T - 20),
@@ -88,7 +83,6 @@ const MATERIALS_DATABASE = {
   },
   vidro: {
     name: 'Vidro',
-    color: '#4FC3F7',
     category: 'Cerâmico',
     density: (T) => 2500 - 0.1 * (T - 20),
     specificHeat: (T) => 840 + 0.4 * (T - 20),
@@ -98,7 +92,6 @@ const MATERIALS_DATABASE = {
   },
   poliestireno: {
     name: 'Poliestireno',
-    color: '#FFF59D',
     category: 'Polímero',
     density: (T) => 1050 - 0.8 * (T - 20),
     specificHeat: (T) => 1300 + 2 * (T - 20),
@@ -108,7 +101,6 @@ const MATERIALS_DATABASE = {
   },
   ar: {
     name: 'Ar',
-    color: '#E1F5FE',
     category: 'Gás',
     density: (T) => 1.225 * (293 / (T + 273)),
     specificHeat: (T) => 1005 + 0.01 * (T - 20),
@@ -132,7 +124,7 @@ const PROPERTY_LABELS = {
   viscosity: 'Viscosidade',
 };
 
-// normalização para o radar (0–100)
+// ---------- Normalização para o radar (0–100) ----------
 function normalizeValue(prop, raw) {
   if (raw == null || !isFinite(raw)) return 0;
   switch (prop) {
@@ -143,7 +135,43 @@ function normalizeValue(prop, raw) {
   }
 }
 
+// ---------- Cores sensíveis ao tema e alto contraste ----------
+function useMaterialColors() {
+  const theme = useTheme();
+  const mode = theme.palette.mode;
+
+  // Cores escolhidas para forte contraste no dark e boa distinção no light.
+  const paletteLight = {
+    agua: theme.palette.primary.main,     // azul forte
+    aco: '#424242',                       // cinza escuro
+    aluminio: '#546E7A',                  // blueGrey 700
+    cobre: '#E64A19',                     // deep orange 800
+    vidro: '#00695C',                     // teal 800
+    poliestireno: '#F9A825',              // yellow 700
+    ar: '#1976D2',                        // blue 700
+  };
+
+  const paletteDark = {
+    agua: '#4FC3F7',          // light blue 300
+    aco: '#EEEEEE',           // quase branco (sai do "cinza morto")
+    aluminio: '#FFCA28',      // amber 400 (troca do cinza por tom quente legível)
+    cobre: '#FF8A65',         // deep orange 300
+    vidro: '#80CBC4',         // teal 200
+    poliestireno: '#FFEE58',  // yellow 400
+    ar: '#64B5F6',            // light blue 300 (diferente de água)
+  };
+
+  return mode === 'dark' ? paletteDark : paletteLight;
+}
+
+// tracejados por série ajudam quando as cores ficam parecidas
+const SERIES_DASH = ['0', '6 4', '4 4', '12 6', '2 6', '8 4'];
+
+// ---------- Componente ----------
 export default function MaterialPropertiesLab() {
+  const theme = useTheme();
+  const materialColors = useMaterialColors();
+
   const [temperature, setTemperature] = useState(25);
   const [selectedMaterials, setSelectedMaterials] = useState(['agua', 'aco', 'aluminio']);
   const [selectedProperty, setSelectedProperty] = useState('thermalConductivity');
@@ -151,49 +179,48 @@ export default function MaterialPropertiesLab() {
   const [temperatureRange, setTemperatureRange] = useState([0, 100]);
 
   // Dados para o gráfico de linha
-  const generateChartData = () => {
+  const chartData = useMemo(() => {
     const data = [];
     for (let T = temperatureRange[0]; T <= temperatureRange[1]; T += 5) {
       const point = { temperature: T };
-      selectedMaterials.forEach(materialKey => {
-        const material = MATERIALS_DATABASE[materialKey];
-        const value = material[selectedProperty](T);
-        if (value !== null) point[material.name] = Number(value.toFixed(3));
+      selectedMaterials.forEach((key) => {
+        const m = MATERIALS_DATABASE[key];
+        const v = m[selectedProperty](T);
+        if (v != null) point[m.name] = Number(v.toFixed(3));
       });
       data.push(point);
     }
     return data;
-  };
+  }, [selectedMaterials, selectedProperty, temperatureRange]);
 
-  // Dados para o RadarChart (um array com subjects e colunas por material)
+  // Dados para o radar
   const radarSubjects = [
     { subject: 'Densidade', prop: 'density' },
     { subject: 'Calor Específico', prop: 'specificHeat' },
     { subject: 'Condutividade Térmica', prop: 'thermalConductivity' },
   ];
-
-  const generateRadarChartData = () => {
+  const radarChartData = useMemo(() => {
     return radarSubjects.map(({ subject, prop }) => {
       const row = { subject };
-      selectedMaterials.forEach(materialKey => {
-        const material = MATERIALS_DATABASE[materialKey];
-        const raw = material[prop](temperature);
-        row[material.name] = normalizeValue(prop, raw);
+      selectedMaterials.forEach((key) => {
+        const m = MATERIALS_DATABASE[key];
+        row[m.name] = normalizeValue(prop, m[prop](temperature));
       });
       return row;
     });
-  };
+  }, [selectedMaterials, temperature]);
 
   const handleMaterialToggle = (materialKey) => {
-    setSelectedMaterials(prev =>
-      prev.includes(materialKey)
-        ? prev.filter(m => m !== materialKey)
-        : [...prev, materialKey]
+    setSelectedMaterials((prev) =>
+      prev.includes(materialKey) ? prev.filter((m) => m !== materialKey) : [...prev, materialKey]
     );
   };
 
-  const chartData = generateChartData();
-  const radarChartData = generateRadarChartData();
+  // estilos universais para contraste no gráfico
+  const gridStroke = alpha(theme.palette.text.primary, theme.palette.mode === 'dark' ? 0.15 : 0.1);
+  const axisStroke = alpha(theme.palette.text.primary, 0.8);
+  const tickStyle = { fill: theme.palette.text.primary, fontSize: 12 };
+  const legendStyle = { color: theme.palette.text.primary };
 
   return (
     <Box
@@ -205,7 +232,7 @@ export default function MaterialPropertiesLab() {
         mx: 'auto',
         display: 'flex',
         flexDirection: 'column',
-        gap: 3
+        gap: 3,
       }}
     >
       {/* Header */}
@@ -218,7 +245,7 @@ export default function MaterialPropertiesLab() {
             backgroundClip: 'text',
             WebkitBackgroundClip: 'text',
             color: 'transparent',
-            fontWeight: 'bold'
+            fontWeight: 'bold',
           }}
         >
           <Science sx={{ fontSize: 48, mr: 2, verticalAlign: 'middle', color: '#FF6B6B' }} />
@@ -229,10 +256,19 @@ export default function MaterialPropertiesLab() {
         </Typography>
       </Box>
 
-      {/* Layout principal: sidebar à esquerda + área de gráficos à direita */}
+      {/* Layout principal */}
       <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'row', gap: 3 }}>
-        {/* Sidebar (controles, seleção, tabela, descrições) */}
-        <Box sx={{ width: { xs: '100%', md: 360, lg: 380 }, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 3, minHeight: 0 }}>
+        {/* Sidebar */}
+        <Box
+          sx={{
+            width: { xs: '100%', md: 360, lg: 380 },
+            flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 3,
+            minHeight: 0,
+          }}
+        >
           {/* Controles */}
           <Card>
             <CardContent>
@@ -241,14 +277,14 @@ export default function MaterialPropertiesLab() {
                   <Typography gutterBottom>Temperatura: {temperature}°C</Typography>
                   <Slider
                     value={temperature}
-                    onChange={(_, value) => setTemperature(value)}
+                    onChange={(_, v) => setTemperature(v)}
                     min={-20}
                     max={200}
                     step={1}
                     marks={[
                       { value: 0, label: '0°C' },
                       { value: 100, label: '100°C' },
-                      { value: 200, label: '200°C' }
+                      { value: 200, label: '200°C' },
                     ]}
                   />
                 </Grid>
@@ -272,10 +308,7 @@ export default function MaterialPropertiesLab() {
                 <Grid item xs={12}>
                   <FormControlLabel
                     control={
-                      <Switch
-                        checked={showComparison}
-                        onChange={(e) => setShowComparison(e.target.checked)}
-                      />
+                      <Switch checked={showComparison} onChange={(e) => setShowComparison(e.target.checked)} />
                     }
                     label="Modo Comparação"
                   />
@@ -287,12 +320,12 @@ export default function MaterialPropertiesLab() {
                   </Typography>
                   <Slider
                     value={temperatureRange}
-                    onChange={(_, value) => setTemperatureRange(value)}
+                    onChange={(_, v) => setTemperatureRange(v)}
                     min={-20}
-                    max={300}
+                    max={200}
                     step={10}
                     valueLabelDisplay="auto"
-                    valueLabelFormat={(value) => `${value}°C`}
+                    valueLabelFormat={(v) => `${v}°C`}
                   />
                 </Grid>
               </Grid>
@@ -307,25 +340,30 @@ export default function MaterialPropertiesLab() {
                 Selecione os Materiais
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {Object.entries(MATERIALS_DATABASE).map(([key, material]) => (
-                  <Chip
-                    key={key}
-                    label={material.name}
-                    onClick={() => handleMaterialToggle(key)}
-                    color={selectedMaterials.includes(key) ? 'primary' : 'default'}
-                    variant={selectedMaterials.includes(key) ? 'filled' : 'outlined'}
-                    sx={{
-                      backgroundColor: selectedMaterials.includes(key) ? material.color : 'transparent',
-                      color: selectedMaterials.includes(key) ? 'white' : 'inherit',
-                      fontWeight: selectedMaterials.includes(key) ? 'bold' : 'normal'
-                    }}
-                  />
-                ))}
+                {Object.entries(MATERIALS_DATABASE).map(([key, material], idx) => {
+                  const bg = materialColors[key];
+                  const text = theme.palette.getContrastText(bg);
+                  const selected = selectedMaterials.includes(key);
+                  return (
+                    <Chip
+                      key={key}
+                      label={material.name}
+                      onClick={() => handleMaterialToggle(key)}
+                      variant={selected ? 'filled' : 'outlined'}
+                      sx={{
+                        backgroundColor: selected ? bg : 'transparent',
+                        color: selected ? text : bg,
+                        borderColor: bg,
+                        fontWeight: selected ? 700 : 600,
+                      }}
+                    />
+                  );
+                })}
               </Box>
             </CardContent>
           </Card>
 
-          {/* Tabela de Propriedades */}
+          {/* Tabela */}
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -340,38 +378,36 @@ export default function MaterialPropertiesLab() {
                       <TableCell align="right">
                         {PROPERTY_LABELS[selectedProperty]}
                         <br />
-                        <Typography variant="caption">
-                          ({PROPERTY_UNITS[selectedProperty]})
-                        </Typography>
+                        <Typography variant="caption">({PROPERTY_UNITS[selectedProperty]})</Typography>
                       </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {selectedMaterials.map(materialKey => {
-                      const material = MATERIALS_DATABASE[materialKey];
-                      const value = material[selectedProperty](temperature);
+                    {selectedMaterials.map((key) => {
+                      const m = MATERIALS_DATABASE[key];
+                      const value = m[selectedProperty](temperature);
+                      const color = materialColors[key];
                       return (
-                        <TableRow key={materialKey}>
+                        <TableRow key={key}>
                           <TableCell>
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                               <Box
                                 sx={{
                                   width: 16,
                                   height: 16,
-                                  backgroundColor: material.color,
+                                  backgroundColor: color,
                                   borderRadius: '50%',
-                                  mr: 1
+                                  boxShadow: `0 0 0 2px ${theme.palette.background.paper} inset`,
+                                  mr: 1,
                                 }}
                               />
-                              {material.name}
+                              {m.name}
                             </Box>
                           </TableCell>
                           <TableCell>
-                            <Chip size="small" label={material.category} />
+                            <Chip size="small" label={m.category} />
                           </TableCell>
-                          <TableCell align="right">
-                            {value !== null ? value.toFixed(3) : 'N/A'}
-                          </TableCell>
+                          <TableCell align="right">{value != null ? value.toFixed(3) : 'N/A'}</TableCell>
                         </TableRow>
                       );
                     })}
@@ -381,24 +417,25 @@ export default function MaterialPropertiesLab() {
             </CardContent>
           </Card>
 
-          {/* Descrições dos Materiais */}
+          {/* Descrições */}
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 <Info sx={{ mr: 1, verticalAlign: 'middle' }} />
                 Informações dos Materiais
               </Typography>
-              {selectedMaterials.map(materialKey => {
-                const material = MATERIALS_DATABASE[materialKey];
+              {selectedMaterials.map((key) => {
+                const m = MATERIALS_DATABASE[key];
+                const color = materialColors[key];
                 return (
-                  <Box key={materialKey} sx={{ mb: 2, p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: material.color }}>
-                      {material.name}
+                  <Box key={key} sx={{ mb: 2, p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color }}>
+                      {m.name}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {material.description}
+                      {m.description}
                     </Typography>
-                    <Chip size="small" label={material.category} sx={{ mt: 1 }} />
+                    <Chip size="small" label={m.category} sx={{ mt: 1 }} />
                   </Box>
                 );
               })}
@@ -406,9 +443,9 @@ export default function MaterialPropertiesLab() {
           </Card>
         </Box>
 
-        {/* Área de gráficos (direita) */}
+        {/* ÁREA DE GRÁFICOS */}
         <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-          {/* Gráfico de Variação com Temperatura */}
+          {/* Linha */}
           <Card sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             <CardHeader
               title={`${PROPERTY_LABELS[selectedProperty]} vs Temperatura`}
@@ -420,30 +457,52 @@ export default function MaterialPropertiesLab() {
               <Box sx={{ width: '100%', height: '100%' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
+                    <CartesianGrid stroke={gridStroke} />
                     <XAxis
                       dataKey="temperature"
-                      label={{ value: 'Temperatura (°C)', position: 'insideBottom', offset: -5 }}
+                      tick={tickStyle}
+                      axisLine={{ stroke: axisStroke }}
+                      tickLine={{ stroke: axisStroke }}
+                      label={{ value: 'Temperatura (°C)', position: 'insideBottom', offset: -5, fill: theme.palette.text.primary }}
                     />
                     <YAxis
+                      tick={tickStyle}
+                      axisLine={{ stroke: axisStroke }}
+                      tickLine={{ stroke: axisStroke }}
                       label={{
                         value: `${PROPERTY_LABELS[selectedProperty]} (${PROPERTY_UNITS[selectedProperty]})`,
                         angle: -90,
-                        position: 'insideLeft'
+                        position: 'insideLeft',
+                        fill: theme.palette.text.primary,
                       }}
                     />
-                    <RechartsTooltip />
-                    <Legend />
-                    {selectedMaterials.map(materialKey => {
-                      const material = MATERIALS_DATABASE[materialKey];
+                    <RechartsTooltip
+                      contentStyle={{
+                        backgroundColor: theme.palette.background.paper,
+                        border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+                        color: theme.palette.text.primary,
+                      }}
+                      itemStyle={{ color: theme.palette.text.primary }}
+                      labelStyle={{ color: theme.palette.text.secondary }}
+                    />
+                    <Legend wrapperStyle={legendStyle} />
+                    {selectedMaterials.map((key, i) => {
+                      const m = MATERIALS_DATABASE[key];
+                      const stroke = materialColors[key];
                       return (
                         <Line
-                          key={materialKey}
+                          key={key}
                           type="monotone"
-                          dataKey={material.name}
-                          stroke={material.color}
+                          dataKey={m.name}
+                          stroke={stroke}
                           strokeWidth={3}
-                          dot={{ fill: material.color, strokeWidth: 2, r: 3 }}
+                          dot={{
+                            r: 4,
+                            strokeWidth: 2,
+                            stroke,
+                            fill: theme.palette.background.paper,
+                          }}
+                          activeDot={{ r: 6 }}
                           isAnimationActive={false}
                         />
                       );
@@ -454,7 +513,7 @@ export default function MaterialPropertiesLab() {
             </CardContent>
           </Card>
 
-          {/* Radar Chart para Comparação */}
+          {/* Radar */}
           {showComparison && (
             <Card sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
               <CardHeader
@@ -467,26 +526,35 @@ export default function MaterialPropertiesLab() {
                 <Box sx={{ width: '100%', height: '100%' }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <RadarChart data={radarChartData}>
-                      <PolarGrid />
-                      <PolarAngleAxis dataKey="subject" />
-                      <PolarRadiusAxis angle={90} domain={[0, 100]} />
-                      {selectedMaterials.map((materialKey) => {
-                        const m = MATERIALS_DATABASE[materialKey];
+                      <PolarGrid stroke={gridStroke} />
+                      <PolarAngleAxis dataKey="subject" tick={tickStyle} />
+                      <PolarRadiusAxis angle={90} domain={[0, 100]} tick={tickStyle} stroke={axisStroke} />
+                      {selectedMaterials.map((key, i) => {
+                        const m = MATERIALS_DATABASE[key];
+                        const stroke = materialColors[key];
                         return (
                           <Radar
-                            key={materialKey}
+                            key={key}
                             name={m.name}
-                            dataKey={m.name}      // <- cada coluna é um material
-                            stroke={m.color}
-                            fill={m.color}
-                            fillOpacity={0.1}
+                            dataKey={m.name}
+                            stroke={stroke}
+                            fill={stroke}
+                            fillOpacity={0.25}
                             strokeWidth={2}
                             isAnimationActive={false}
                           />
                         );
                       })}
-                      <Legend />
-                      <RechartsTooltip />
+                      <Legend wrapperStyle={legendStyle} />
+                      <RechartsTooltip
+                        contentStyle={{
+                          backgroundColor: theme.palette.background.paper,
+                          border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+                          color: theme.palette.text.primary,
+                        }}
+                        itemStyle={{ color: theme.palette.text.primary }}
+                        labelStyle={{ color: theme.palette.text.secondary }}
+                      />
                     </RadarChart>
                   </ResponsiveContainer>
                 </Box>
