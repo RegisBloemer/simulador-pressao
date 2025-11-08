@@ -5,6 +5,7 @@ import PressureChart from './components/PressureChart';
 import HeatPlaygroundPage from './components/HeatPlaygroundPage';
 import HeatTransferLab from './components/HeatTransferLab';
 import MaterialPropertiesLab from './components/MaterialPropertiesLab';
+import ThermalSystemPage from './components/ThermalSystem';
 import { ThemeModeContext } from './providers';
 import { useTheme, alpha } from '@mui/material/styles';
 
@@ -234,7 +235,8 @@ export default function Home() {
         <Tab label="Simulador de Pressão" value="simulador" />
         <Tab label="Laboratório de Transferência de Calor" value="HeatTransferLab" />
         <Tab label="Laboratório de Propriedades" value="MaterialPropertiesLab" />
-        <Tab label="Playground de Calor" value="HeatPlayground" />
+        {/* <Tab label="Playground de Calor" value="HeatPlayground" /> */}
+        <Tab label="Cálculadora de CResistência térmica" value="ThermalSystem" />
       </Tabs>
 
       {tab === 'simulador' && (
@@ -445,14 +447,19 @@ export default function Home() {
           <HeatTransferLab />
         </Box>
       )}
-      {tab === 'HeatPlayground' && (
+      {/* {tab === 'HeatPlayground' && (
         <Box sx={{ flex: 1, minHeight: 0 }}>
           <HeatPlaygroundPage />
         </Box>
-      )}
+      )} */}
       {tab === 'MaterialPropertiesLab' && (
         <Box sx={{ flex: 1, minHeight: 0 }}>
           <MaterialPropertiesLab />
+        </Box>
+      )}
+      {tab === 'ThermalSystem' && (
+        <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          <ThermalSystemPage />
         </Box>
       )}
     </Container>
