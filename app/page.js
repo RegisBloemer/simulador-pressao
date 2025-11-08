@@ -236,7 +236,7 @@ export default function Home() {
         <Tab label="Laboratório de Transferência de Calor" value="HeatTransferLab" />
         <Tab label="Laboratório de Propriedades" value="MaterialPropertiesLab" />
         {/* <Tab label="Playground de Calor" value="HeatPlayground" /> */}
-        <Tab label="Cálculadora de CResistência térmica" value="ThermalSystem" />
+        <Tab label="Cálculadora de Resistência térmica" value="ThermalSystem" />
       </Tabs>
 
       {tab === 'simulador' && (
