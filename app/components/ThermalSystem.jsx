@@ -16,8 +16,10 @@ import {
   Stack,
   Chip,
   Paper,
+  MenuItem,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
 
 import {
   DndContext,
@@ -96,6 +98,7 @@ function ThermalSystemPage() {
     return map;
   }, []);
 
+  // Cada camada agora pode ter parallelGroupId (string ou null)
   const [composition, setComposition] = useState([]);
   const [contactResistances, setContactResistances] = useState({});
   const [convExt, setConvExt] = useState({ enabled: true, h: '25' });
@@ -107,6 +110,21 @@ function ThermalSystemPage() {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
+
+  // Helper para criar uma camada
+  const createLayer = (materialId, options = {}) => {
+    const material = materialsMap[materialId];
+    if (!material) return null;
+
+    return {
+      instanceId: `layer-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2, 8)}`,
+      materialId,
+      thickness: material.defaultThickness.toString(),
+      parallelGroupId: options.parallelGroupId ?? null,
+    };
+  };
 
   // ---------------- Drag & Drop ----------------
   const handleDragStart = (event) => {
@@ -146,7 +164,9 @@ function ThermalSystemPage() {
         let newIndex = prev.findIndex((l) => l.instanceId === over.id);
         if (oldIndex === -1) return prev;
         if (newIndex === -1) newIndex = prev.length - 1;
-        return arrayMove(prev, oldIndex, newIndex);
+        const moved = arrayMove(prev, oldIndex, newIndex);
+        // grupos paralelos continuam definidos por parallelGroupId
+        return moved;
       });
       return;
     }
@@ -159,18 +179,10 @@ function ThermalSystemPage() {
       }
 
       const materialId = active.data?.current?.materialId;
-      const material = materialsMap[materialId];
-      if (!material) return;
+      const newLayer = createLayer(materialId);
+      if (!newLayer) return;
 
       setComposition((prev) => {
-        const newLayer = {
-          instanceId: `layer-${Date.now()}-${Math.random()
-            .toString(36)
-            .slice(2, 8)}`,
-          materialId,
-          thickness: material.defaultThickness.toString(),
-        };
-
         let insertIndex = prev.length;
         if (isOverLayer) {
           const idx = prev.findIndex((l) => l.instanceId === over.id);
@@ -197,8 +209,83 @@ function ThermalSystemPage() {
     );
   };
 
+  const handleMaterialChange = (layerId, newMaterialId) => {
+    if (!materialsMap[newMaterialId]) return;
+    setComposition((prev) =>
+      prev.map((layer) =>
+        layer.instanceId === layerId
+          ? { ...layer, materialId: newMaterialId }
+          : layer
+      )
+    );
+  };
+
+  const handleAddParallelLayer = (layerId) => {
+    setComposition((prev) => {
+      const index = prev.findIndex((l) => l.instanceId === layerId);
+      if (index === -1) return prev;
+
+      const baseLayer = prev[index];
+      const baseMaterial = materialsMap[baseLayer.materialId];
+      if (!baseMaterial) return prev;
+
+      const groupId =
+        baseLayer.parallelGroupId ||
+        `pg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+      const newLayer = {
+        instanceId: `layer-${Date.now()}-${Math.random()
+          .toString(36)
+          .slice(2, 8)}`,
+        materialId: baseLayer.materialId,
+        thickness: baseLayer.thickness,
+        parallelGroupId: groupId,
+      };
+
+      const newComp = [...prev];
+
+      // Garante que a camada base também esteja no grupo paralelo
+      if (!baseLayer.parallelGroupId) {
+        newComp[index] = { ...baseLayer, parallelGroupId: groupId };
+      }
+
+      // Insere logo após o último membro atual do grupo
+      let insertIndex = index + 1;
+      while (
+        insertIndex < newComp.length &&
+        newComp[insertIndex].parallelGroupId === groupId
+      ) {
+        insertIndex++;
+      }
+
+      newComp.splice(insertIndex, 0, newLayer);
+      return newComp;
+    });
+  };
+
   const handleRemoveLayer = (layerId) => {
-    setComposition((prev) => prev.filter((layer) => layer.instanceId !== layerId));
+    setComposition((prev) => {
+      const layerToRemove = prev.find((l) => l.instanceId === layerId);
+      if (!layerToRemove) return prev;
+
+      const groupId = layerToRemove.parallelGroupId || null;
+
+      let next = prev.filter((layer) => layer.instanceId !== layerId);
+
+      // Se o grupo paralelo ficar com apenas 1 camada, remove o "status paralelo"
+      if (groupId) {
+        const remaining = next.filter((l) => l.parallelGroupId === groupId);
+        if (remaining.length <= 1) {
+          next = next.map((l) =>
+            l.parallelGroupId === groupId ? { ...l, parallelGroupId: null } : l
+          );
+        }
+      }
+
+      return next;
+    });
+
+    // Limpa resistências de contato associadas a essa camada
     setContactResistances((prev) => {
       const newMap = {};
       Object.entries(prev).forEach(([key, val]) => {
@@ -240,7 +327,7 @@ function ThermalSystemPage() {
     }
   };
 
-  // ---------------- Cálculo de R_total ----------------
+  // ---------------- Cálculo de R_total (série + paralelo) ----------------
   const { totalFormatted, details, breakdownExpression } = useMemo(() => {
     let total = 0;
     const items = [];
@@ -260,25 +347,100 @@ function ThermalSystemPage() {
       }
     }
 
-    // Materiais + contato
-    composition.forEach((layer, index) => {
-      const mat = materialsMap[layer.materialId];
-      if (!mat) return;
-      const L = parseFloat(layer.thickness);
-      const k = parseFloat(mat.k);
-      if (Number.isFinite(L) && Number.isFinite(k) && L > 0 && k > 0) {
-        addItem(`Material ${index + 1}: ${mat.name}`, L / k);
+    const nLayers = composition.length;
+    let i = 0;
+
+    while (i < nLayers) {
+      const layer = composition[i];
+
+      // Verifica se este índice é o início de um grupo em paralelo
+      const pgId = layer.parallelGroupId;
+      if (pgId) {
+        let j = i + 1;
+        while (j < nLayers && composition[j].parallelGroupId === pgId) {
+          j++;
+        }
+        const groupSize = j - i;
+
+        if (groupSize > 1) {
+          const groupLayers = composition.slice(i, j);
+
+          let invSum = 0;
+          const branchLabels = [];
+
+          groupLayers.forEach((gLayer) => {
+            const mat = materialsMap[gLayer.materialId];
+            if (!mat) return;
+            const L = parseFloat(gLayer.thickness);
+            const k = parseFloat(mat.k);
+            if (Number.isFinite(L) && Number.isFinite(k) && L > 0 && k > 0) {
+              const R = L / k;
+              if (R > 0) {
+                invSum += 1 / R;
+                branchLabels.push(`${mat.name} (R=${R.toFixed(4)})`);
+              }
+            }
+          });
+
+          if (invSum > 0) {
+            const Rpar = 1 / invSum;
+            const label = branchLabels.length
+              ? `Grupo em paralelo: ${branchLabels.join(' || ')}`
+              : `Grupo em paralelo (${groupSize} camadas)`;
+            addItem(label, Rpar);
+          }
+
+          // Resistência de contato APÓS o grupo paralelo (se existir próxima camada)
+          if (j < nLayers) {
+            const lastLayer = composition[j - 1];
+            const nextLayer = composition[j];
+            const contactKey = `${lastLayer.instanceId}_${nextLayer.instanceId}`;
+            const contact = contactResistances[contactKey];
+            if (contact && contact.enabled) {
+              const lastMat = materialsMap[lastLayer.materialId];
+              const nextMat = materialsMap[nextLayer.materialId];
+              const contactLabel =
+                lastMat && nextMat
+                  ? `Resistência de contato entre grupo paralelo (${lastMat.name} na borda) e ${nextMat.name}`
+                  : 'Resistência de contato após grupo em paralelo';
+              addItem(contactLabel, contact.rValue);
+            }
+          }
+
+          i = j;
+          continue;
+        }
+        // Se groupSize === 1, cai no caso "camada em série" abaixo.
       }
 
-      if (index < composition.length - 1) {
-        const nextLayer = composition[index + 1];
+      // Camada em série (normal)
+      const mat = materialsMap[layer.materialId];
+      if (mat) {
+        const L = parseFloat(layer.thickness);
+        const k = parseFloat(mat.k);
+        if (Number.isFinite(L) && Number.isFinite(k) && L > 0 && k > 0) {
+          addItem(`Camada: ${mat.name}`, L / k);
+        }
+      }
+
+      // Resistência de contato entre esta camada e a próxima (se houver)
+      if (i < nLayers - 1) {
+        const nextLayer = composition[i + 1];
         const contactKey = `${layer.instanceId}_${nextLayer.instanceId}`;
         const contact = contactResistances[contactKey];
         if (contact && contact.enabled) {
-          addItem(`Resistência de contato ${index + 1}`, contact.rValue);
+          const matA = mat;
+          const matB = materialsMap[nextLayer.materialId];
+          const contactLabel =
+            matA && matB
+              ? `Resistência de contato entre ${matA.name} e ${matB.name}`
+              : 'Resistência de contato entre camadas';
+          addItem(contactLabel, contact.rValue);
         }
       }
-    });
+
+      i += 1;
+    }
 
     // Convecção interna
     if (convInt.enabled) {
@@ -299,7 +461,7 @@ function ThermalSystemPage() {
     );
     const breakdownExpression = detailsFormatted.length
       ? `R_total = ${exprParts.join(' + ')} = ${totalFormatted} m²·K/W`
-      : 'Adicione materiais e parâmetros de convecção/contato para calcular R_total.';
+      : 'Adicione materiais (em série ou em paralelo) e parâmetros de convecção/contato para calcular R_total.';
 
     return { totalFormatted, details: detailsFormatted, breakdownExpression };
   }, [composition, contactResistances, convExt, convInt, materialsMap]);
@@ -323,11 +485,12 @@ function ThermalSystemPage() {
       >
         <Box>
           <Typography variant="h4" gutterBottom>
-            Sistema Térmico em Série
+            Sistema Térmico (Série e Paralelo)
           </Typography>
           <Typography variant="subtitle1" color="text.secondary">
-            Monte o empilhamento de materiais, configure convecção e resistências de contato
-            para obter a resistência térmica total (área = 1 m²).
+            Monte o empilhamento de materiais (incluindo grupos em paralelo),
+            configure convecção e resistências de contato para obter a
+            resistência térmica total (área = 1 m²).
           </Typography>
         </Box>
 
@@ -378,6 +541,8 @@ function ThermalSystemPage() {
               contactResistances={contactResistances}
               onConvChange={handleConvChange}
               onThicknessChange={handleThicknessChange}
+              onMaterialChange={handleMaterialChange}
+              onAddParallelLayer={handleAddParallelLayer}
               onRemoveLayer={handleRemoveLayer}
               onContactToggle={handleContactToggle}
               onContactValueChange={handleContactValueChange}
@@ -415,26 +580,32 @@ function ThermalSystemPage() {
             <MaterialCard material={materialsMap[activeDrag.materialId]} />
           </Box>
         )}
-        {activeDrag?.type === 'layer' && (() => {
-          const layer = composition.find((l) => l.instanceId === activeDrag.layerId);
-          if (!layer) return null;
-          const material = materialsMap[layer.materialId];
-          return (
-            <Box
-              sx={{
-                cursor: 'grabbing',
-                maxWidth: 500,
-              }}
-            >
-              <MaterialLayerCard
-                layer={layer}
-                material={material}
-                onThicknessChange={() => {}}
-                onRemoveLayer={() => {}}
-              />
-            </Box>
-          );
-        })()}
+        {activeDrag?.type === 'layer' &&
+          (() => {
+            const layer = composition.find(
+              (l) => l.instanceId === activeDrag.layerId
+            );
+            if (!layer) return null;
+            const material = materialsMap[layer.materialId];
+            return (
+              <Box
+                sx={{
+                  cursor: 'grabbing',
+                  maxWidth: 500,
+                }}
+              >
+                <MaterialLayerCard
+                  layer={layer}
+                  material={material}
+                  allMaterials={MATERIALS}
+                  onThicknessChange={() => {}}
+                  onRemoveLayer={() => {}}
+                  onMaterialChange={() => {}}
+                  onAddParallel={() => {}}
+                />
+              </Box>
+            );
+          })()}
       </DragOverlay>
     </DndContext>
   );
@@ -471,14 +642,15 @@ function MaterialCatalog({ materials }) {
 }
 
 function CatalogDraggable({ material }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: `catalog-${material.id}`,
-    data: { from: 'catalog', materialId: material.id },
-  });
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useDraggable({
+      id: `catalog-${material.id}`,
+      data: { from: 'catalog', materialId: material.id },
+    });
 
   const style = {
     transform: CSS.Translate.toString(transform),
-    opacity: isDragging ? 0.2 : 1,                 // fantasma enquanto overlay aparece
+    opacity: isDragging ? 0.2 : 1, // fantasma enquanto overlay aparece
     cursor: isDragging ? 'grabbing' : 'grab',
   };
 
@@ -531,6 +703,8 @@ function SystemBuilder({
   contactResistances,
   onConvChange,
   onThicknessChange,
+  onMaterialChange,
+  onAddParallelLayer,
   onRemoveLayer,
   onContactToggle,
   onContactValueChange,
@@ -541,6 +715,7 @@ function SystemBuilder({
   });
 
   const itemsIds = composition.map((layer) => layer.instanceId);
+  const allMaterials = MATERIALS;
 
   return (
     <Card
@@ -553,7 +728,7 @@ function SystemBuilder({
     >
       <CardHeader
         title="Composição do sistema"
-        subheader="Reordene os materiais e configure contatos e convecção"
+        subheader="Reordene materiais, crie grupos em paralelo, configure contatos e convecção"
       />
       <CardContent sx={{ flex: 1, minHeight: 0 }}>
         <Stack spacing={2} sx={{ height: '100%' }}>
@@ -596,27 +771,65 @@ function SystemBuilder({
                 const material = materialsMap[layer.materialId];
                 const isLast = index === composition.length - 1;
 
+                const prevLayer = index > 0 ? composition[index - 1] : null;
                 const nextLayer = !isLast ? composition[index + 1] : null;
-                const contactKey = nextLayer
-                  ? `${layer.instanceId}_${nextLayer.instanceId}`
-                  : null;
-                const contact = contactKey
-                  ? contactResistances[contactKey] || {
-                      enabled: false,
-                      rValue: '0.01',
-                    }
-                  : null;
+
+                const isInParallelGroup =
+                  !!layer.parallelGroupId &&
+                  ((prevLayer &&
+                    prevLayer.parallelGroupId === layer.parallelGroupId) ||
+                    (nextLayer &&
+                      nextLayer.parallelGroupId === layer.parallelGroupId));
+
+                const isParallelGroupStart =
+                  !!layer.parallelGroupId &&
+                  (!prevLayer ||
+                    prevLayer.parallelGroupId !== layer.parallelGroupId) &&
+                  nextLayer &&
+                  nextLayer.parallelGroupId === layer.parallelGroupId;
+
+                const isParallelGroupEnd =
+                  !!layer.parallelGroupId &&
+                  (!nextLayer ||
+                    nextLayer.parallelGroupId !== layer.parallelGroupId) &&
+                  prevLayer &&
+                  prevLayer.parallelGroupId === layer.parallelGroupId;
+
+                const sameParallelAsNext =
+                  nextLayer &&
+                  layer.parallelGroupId &&
+                  nextLayer.parallelGroupId === layer.parallelGroupId;
+
+                const shouldShowContact = !isLast && !sameParallelAsNext;
+
+                const contactKey =
+                  shouldShowContact && nextLayer
+                    ? `${layer.instanceId}_${nextLayer.instanceId}`
+                    : null;
+                const contact =
+                  contactKey && contactResistances[contactKey]
+                    ? contactResistances[contactKey]
+                    : {
+                        enabled: false,
+                        rValue: '0.01',
+                      };
 
                 return (
                   <React.Fragment key={layer.instanceId}>
                     <SortableLayer
                       layer={layer}
                       material={material}
+                      allMaterials={allMaterials}
                       onThicknessChange={onThicknessChange}
+                      onMaterialChange={onMaterialChange}
+                      onAddParallel={onAddParallelLayer}
                       onRemoveLayer={onRemoveLayer}
                       isLast={isLast}
+                      isInParallelGroup={isInParallelGroup}
+                      isParallelGroupStart={isParallelGroupStart}
+                      isParallelGroupEnd={isParallelGroupEnd}
                     />
-                    {!isLast && (
+                    {shouldShowContact && !isLast && (
                       <ContactResistanceConnector
                         enabled={contact.enabled}
                         value={contact.rValue}
@@ -650,9 +863,15 @@ function SystemBuilder({
 function SortableLayer({
   layer,
   material,
+  allMaterials,
   onThicknessChange,
+  onMaterialChange,
+  onAddParallel,
   onRemoveLayer,
   isLast,
+  isInParallelGroup,
+  isParallelGroupStart,
+  isParallelGroupEnd,
 }) {
   const {
     attributes,
@@ -677,13 +896,25 @@ function SortableLayer({
     <Box
       ref={setNodeRef}
       style={style}
-      sx={{ mb: isLast ? 0 : 1.5 }}
+      sx={{
+        mb: isInParallelGroup ? 0.5 : isLast ? 0 : 1.5,
+        display: isInParallelGroup ? 'inline-block' : 'block',
+        verticalAlign: 'top',
+        mr: isInParallelGroup ? 1.5 : 0,
+        width: isInParallelGroup ? { xs: '100%', sm: 'calc(50% - 12px)' } : '100%',
+      }}
     >
       <MaterialLayerCard
         layer={layer}
         material={material}
+        allMaterials={allMaterials}
         onThicknessChange={onThicknessChange}
+        onMaterialChange={onMaterialChange}
+        onAddParallel={onAddParallel}
         onRemoveLayer={onRemoveLayer}
+        isInParallelGroup={isInParallelGroup}
+        isParallelGroupStart={isParallelGroupStart}
+        isParallelGroupEnd={isParallelGroupEnd}
         dragHandleProps={{ ...attributes, ...listeners }}
       />
     </Box>
@@ -694,8 +925,14 @@ function SortableLayer({
 function MaterialLayerCard({
   layer,
   material,
+  allMaterials,
   onThicknessChange,
+  onMaterialChange,
+  onAddParallel,
   onRemoveLayer,
+  isInParallelGroup = false,
+  isParallelGroupStart = false,
+  isParallelGroupEnd = false,
   dragHandleProps = {},
 }) {
   if (!material) return null;
@@ -703,9 +940,15 @@ function MaterialLayerCard({
   const L = parseFloat(layer.thickness);
   const R = Number.isFinite(L) && material.k > 0 ? L / material.k : null;
 
+  const parallelLabel = isParallelGroupStart
+    ? 'Início de grupo em paralelo'
+    : isParallelGroupEnd
+    ? 'Fim de grupo em paralelo'
+    : 'Camada em paralelo';
+
   return (
     <Paper
-      elevation={3}
+      elevation={isInParallelGroup ? 4 : 2}
       sx={{
         p: 2,
         borderRadius: 2,
@@ -713,13 +956,42 @@ function MaterialLayerCard({
         alignItems: 'center',
         gap: 2,
         flexWrap: 'wrap',
+        border: isInParallelGroup ? '1px solid' : '1px solid transparent',
+        borderColor: isInParallelGroup ? 'primary.main' : 'divider',
+        bgcolor: isInParallelGroup ? 'action.selected' : 'background.paper',
       }}
       {...dragHandleProps}
     >
-      <Box sx={{ flexGrow: 1, minWidth: 200 }}>
+      <Box sx={{ flexGrow: 1, minWidth: 220 }}>
+        {isInParallelGroup && (
+          <Typography
+            variant="caption"
+            sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}
+            color="primary.main"
+          >
+            {parallelLabel}
+          </Typography>
+        )}
+
         <Typography variant="subtitle1" fontWeight={600}>
           {material.name}
         </Typography>
+
+        <TextField
+          select
+          label="Material"
+          size="small"
+          value={layer.materialId}
+          onChange={(e) => onMaterialChange(layer.instanceId, e.target.value)}
+          sx={{ mt: 1, mb: 1, maxWidth: 260 }}
+        >
+          {allMaterials.map((m) => (
+            <MenuItem key={m.id} value={m.id}>
+              {m.name}
+            </MenuItem>
+          ))}
+        </TextField>
+
         <Typography variant="body2" color="text.secondary">
           k = {material.k} W/m·K
         </Typography>
@@ -737,7 +1009,14 @@ function MaterialLayerCard({
         </Stack>
       </Box>
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          flexWrap: 'wrap',
+        }}
+      >
         <TextField
           label="Espessura L (m)"
           size="small"
@@ -745,10 +1024,24 @@ function MaterialLayerCard({
           onChange={(e) => onThicknessChange(layer.instanceId, e.target.value)}
           sx={{ width: 130 }}
           inputProps={{ inputMode: 'decimal' }}
+          onClick={(e) => e.stopPropagation()}
         />
         <IconButton
+          color="primary"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAddParallel(layer.instanceId);
+          }}
+          aria-label="Adicionar camada em paralelo"
+        >
+          <AddIcon />
+        </IconButton>
+        <IconButton
           color="error"
-          onClick={() => onRemoveLayer(layer.instanceId)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemoveLayer(layer.instanceId);
+          }}
           aria-label="Remover camada"
         >
           <DeleteIcon />
@@ -891,7 +1184,7 @@ function ResistanceSummary({ totalFormatted, details, breakdownExpression }) {
               R_total = {totalFormatted} m²·K/W
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              (Considerando área de 1 m²)
+              (Considerando área de 1 m² e combinação série/paralelo)
             </Typography>
           </Box>
 
