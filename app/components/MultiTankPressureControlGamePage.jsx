@@ -51,19 +51,19 @@ const GATE_MATERIALS = [
     id: 'steel',
     name: 'Aço',
     description: 'Alta resistência, ideal para altas pressões.',
-    suggestedLimitForce: 80, // kN
+    suggestedLimitForce: 60, // kN (mais desafiador)
   },
   {
     id: 'concrete',
     name: 'Concreto armado',
     description: 'Resistência intermediária e custo moderado.',
-    suggestedLimitForce: 65,
+    suggestedLimitForce: 45,
   },
   {
     id: 'wood',
     name: 'Madeira',
     description: 'Resistência baixa, apenas para situações didáticas.',
-    suggestedLimitForce: 40,
+    suggestedLimitForce: 25,
   },
 ];
 
@@ -104,6 +104,19 @@ function createRandomTankEvent() {
   };
 }
 
+// Evento determinístico de "comporta travada" por alavanca parada
+function createStuckGateEvent() {
+  return {
+    type: 'stuck_gate',
+    label: 'Comporta travada',
+    description:
+      'A comporta travou por ficar muito tempo na mesma posição. É necessário redobrar a atenção.',
+    flowMultiplier: 1.0,
+    blockOutflow: true,
+    remainingTime: 6 + Math.random() * 4, // 6–10 s
+  };
+}
+
 // -----------------------------------------------------------------------------
 // Estados iniciais
 // -----------------------------------------------------------------------------
@@ -116,9 +129,11 @@ function createInitialTanks() {
     baseInflow: 0.9 + 0.05 * i, // m³/s – levemente diferentes
     gateOpening: 0, // 0–100 % (controlado pela alavanca)
     isFailed: false,
-    failureReason: null, // 'overpressure'
+    failureReason: null, // 'overpressure' | 'dry'
     event: null,
     previousUtilization: 0,
+    lowLevelTime: 0, // tempo acumulado em nível muito baixo
+    staticTime: 0, // tempo desde a última mudança de alavanca
   }));
 }
 
@@ -148,7 +163,7 @@ function MultiTankPressureControlGamePage() {
     height: '3.0', // m
     width: '2.0', // m
     thickness: '0.25', // m
-    limitForce: '80', // kN
+    limitForce: '60', // kN (default mais apertado)
   });
 
   const [popup, setPopup] = useState(initialPopup);
@@ -202,7 +217,13 @@ function MultiTankPressureControlGamePage() {
     if (game.isGameOver) return;
     setTanks((prev) =>
       prev.map((t) =>
-        t.id === tankId ? { ...t, gateOpening: value } : t
+        t.id === tankId
+          ? {
+              ...t,
+              gateOpening: value,
+              staticTime: 0, // mexeu na alavanca → zera tempo parado
+            }
+          : t
       )
     );
   };
@@ -213,7 +234,9 @@ function MultiTankPressureControlGamePage() {
 
   // ---------------------------------------------------------------------------
   // Loop de simulação: dinâmica dos tanques + eventos + falhas/sucesso
-  // ---------------------------------------------------------------------------
+  //  - stressFactor: aumenta gradualmente a vazão média do sistema.
+  //  - staticTime: se a alavanca ficar muito tempo parada → evento de comporta travada.
+// ---------------------------------------------------------------------------
   useEffect(() => {
     if (!game.isRunning || game.isGameOver) return;
 
@@ -222,7 +245,14 @@ function MultiTankPressureControlGamePage() {
     const gateWidth = parseFloat(gateConfig.width) || 1;
     const limitForce_kN = parseFloat(gateConfig.limitForce) || 0;
 
+    let simElapsed = 0; // tempo acumulado nesta execução da simulação
+
     const interval = setInterval(() => {
+      simElapsed += dt;
+      const normalized = Math.min(1, simElapsed / SIM_TARGET_TIME);
+      // Fator global de "tempestade" / aumento de carga
+      const stressFactor = 1 + 0.5 * normalized; // 1.0 → 1.5
+
       const tickResult = {
         failEvent: null, // { tankName, reason }
         savedTankName: null,
@@ -239,9 +269,14 @@ function MultiTankPressureControlGamePage() {
             gateOpening,
             event,
             previousUtilization,
+            lowLevelTime,
+            staticTime,
           } = tank;
 
-          // Atualiza / gera evento
+          // Acumula tempo sem mexer na alavanca
+          staticTime += dt;
+
+          // Atualiza / gera evento aleatório
           let newEvent = event;
           if (newEvent) {
             const remaining = (newEvent.remainingTime || 0) - dt;
@@ -257,10 +292,18 @@ function MultiTankPressureControlGamePage() {
             }
           }
 
-          // Vazão de entrada aleatória com evento
+          // Evento determinístico: comporta travada por alavanca parada
+          const STATIC_TIME_LIMIT = 18; // s
+          if (!newEvent && staticTime > STATIC_TIME_LIMIT) {
+            newEvent = createStuckGateEvent();
+            staticTime = 0; // reseta após disparar o evento
+          }
+
+          // Vazão de entrada aleatória com stress global + evento
           const noise = Math.random() * 0.6 - 0.3; // [-0.3, 0.3]
           const eventMultiplier = newEvent?.flowMultiplier ?? 1;
-          let Q_in = baseInflow * (1 + noise) * eventMultiplier;
+          const dynamicBaseInflow = baseInflow * stressFactor;
+          let Q_in = dynamicBaseInflow * (1 + noise) * eventMultiplier;
           Q_in = Math.max(Q_in, 0);
 
           waterVolume += Q_in * dt;
@@ -296,6 +339,16 @@ function MultiTankPressureControlGamePage() {
           let isFailed = tank.isFailed;
           let failureReason = tank.failureReason;
 
+          // Monitor de nível muito baixo (falha operacional se operar quase seco por muito tempo)
+          const LOW_LEVEL_THRESHOLD = 0.2; // m
+          const DRY_TIME = 8; // s em nível muito baixo até falhar
+
+          if (waterHeight < LOW_LEVEL_THRESHOLD) {
+            lowLevelTime += dt;
+          } else {
+            lowLevelTime = 0;
+          }
+
           // Falha por ultrapassar o limite de pressão/força
           if (!isFailed && utilization > 1) {
             isFailed = true;
@@ -304,6 +357,18 @@ function MultiTankPressureControlGamePage() {
               tickResult.failEvent = {
                 tankName: tank.name,
                 reason: 'overpressure',
+              };
+            }
+          }
+
+          // Falha por operar quase seco muito tempo
+          if (!isFailed && lowLevelTime > DRY_TIME) {
+            isFailed = true;
+            failureReason = 'dry';
+            if (!tickResult.failEvent) {
+              tickResult.failEvent = {
+                tankName: tank.name,
+                reason: 'dry',
               };
             }
           }
@@ -325,6 +390,8 @@ function MultiTankPressureControlGamePage() {
             isFailed,
             failureReason,
             previousUtilization: utilization,
+            lowLevelTime,
+            staticTime,
           };
         });
       });
@@ -358,8 +425,11 @@ function MultiTankPressureControlGamePage() {
 
       // Pop-ups
       if (tickResult.failEvent) {
-        const { tankName } = tickResult.failEvent;
-        const msg = `${tankName} explodiu por excesso de pressão na comporta!`;
+        const { tankName, reason } = tickResult.failEvent;
+        const msg =
+          reason === 'overpressure'
+            ? `${tankName} explodiu por excesso de pressão na comporta!`
+            : `${tankName} ficou praticamente seco por muito tempo. Você perdeu o controle hidráulico desse tanque.`;
         setPopup({
           open: true,
           severity: 'error',
@@ -390,8 +460,8 @@ function MultiTankPressureControlGamePage() {
   }, [game.result]);
 
   // ---------------------------------------------------------------------------
-  // Layout principal (AGORA com painel à esquerda e tanques à direita SEM empilhar)
-// ---------------------------------------------------------------------------
+  // Layout principal (painel à esquerda, tanques à direita)
+  // ---------------------------------------------------------------------------
   const topRowTanks = tanks.slice(0, 5);
   const bottomRowTanks = tanks.slice(5, 10);
 
@@ -412,7 +482,8 @@ function MultiTankPressureControlGamePage() {
         <Typography variant="subtitle1" color="text.secondary">
           Controle <strong>10 tanques de água</strong> ao mesmo tempo. Use as
           alavancas na parte inferior para abrir/fechar as comportas, aliviar a
-          pressão e evitar explosões.
+          pressão e evitar tanto explosões quanto operação quase seca. Cuidado:
+          deixar tudo na mesma posição por muito tempo pode travar a comporta.
         </Typography>
       </Box>
 
@@ -422,14 +493,14 @@ function MultiTankPressureControlGamePage() {
         sx={{
           flex: 1,
           minHeight: 0,
-          flexWrap: 'nowrap',      // << NÃO deixa quebrar linha
+          flexWrap: 'nowrap',
           alignItems: 'stretch',
         }}
       >
         {/* Painel geral à esquerda */}
         <Grid
           item
-          xs={4}                    // sempre 1/3 da largura
+          xs={4}
           sx={{
             display: 'flex',
             flexDirection: 'column',
@@ -449,7 +520,7 @@ function MultiTankPressureControlGamePage() {
         {/* Tanques + alavancas à direita */}
         <Grid
           item
-          xs={8}                    // sempre 2/3 da largura
+          xs={8}
           sx={{
             display: 'flex',
             flexDirection: 'column',
@@ -566,7 +637,7 @@ function GameControlPanel({
     statusLabel = 'SUCESSO – todos os tanques controlados!';
     statusColor = 'success';
   } else if (game.result === 'fail') {
-    statusLabel = 'FALHA – pelo menos um tanque explodiu.';
+    statusLabel = 'FALHA – pelo menos um tanque saiu da faixa segura.';
     statusColor = 'error';
   } else if (game.isRunning) {
     statusLabel = 'Simulação em andamento...';
@@ -637,7 +708,8 @@ function GameControlPanel({
             </Typography>
             <Typography variant="caption" color="text.secondary">
               Você vence se chegar ao fim do tempo sem que nenhum tanque
-              ultrapasse o limite de pressão na comporta.
+              ultrapasse o limite de pressão na comporta e sem operar quase
+              seco por muito tempo.
             </Typography>
           </Box>
 
@@ -788,12 +860,18 @@ function GameControlPanel({
               de projeto → <strong>tanque explode</strong> e o jogo termina.
             </Typography>
             <Typography variant="body2">
-              • Se nenhum tanque explodir até o fim do tempo de simulação →
-              <strong> você conseguiu controlar o sistema</strong>.
+              • Se o nível de água de um tanque ficar muito baixo por muito
+              tempo → <strong>falha operacional</strong> (tanque operando
+              praticamente seco).
             </Typography>
             <Typography variant="body2">
-              • Eventos extremos podem aumentar a vazão de entrada ou impedir o
-              alívio temporariamente, exigindo reações rápidas.
+              • Se você deixar uma alavanca na mesma posição por muito tempo, a
+              comporta pode <strong>travar</strong>, impedindo o alívio de
+              pressão.
+            </Typography>
+            <Typography variant="body2">
+              • Se nenhum tanque falhar até o fim do tempo de simulação →
+              <strong> você conseguiu controlar o sistema</strong>.
             </Typography>
           </Box>
         </Stack>
@@ -821,16 +899,23 @@ function TankCard({ tank, gateConfig }) {
   const utilization = limitForce > 0 ? F_h_kN / limitForce : 0;
 
   const isCritical = !tank.isFailed && utilization >= 0.85 && h > 0.1;
+  const isLow = !tank.isFailed && h < 0.2;
 
   let statusLabel = 'Estável';
   let chipColor = 'default';
 
   if (tank.isFailed) {
-    statusLabel = 'Falha: explosão';
+    statusLabel =
+      tank.failureReason === 'dry'
+        ? 'Falha: tanque seco'
+        : 'Falha: explosão';
     chipColor = 'error';
   } else if (isCritical) {
     statusLabel = 'Crítico';
     chipColor = 'error';
+  } else if (isLow) {
+    statusLabel = 'Nível muito baixo';
+    chipColor = 'warning';
   } else if (utilization >= 0.6) {
     statusLabel = 'Alerta';
     chipColor = 'warning';
@@ -991,8 +1076,9 @@ function LeversRow({
       </Typography>
       <Typography variant="caption" color="text.secondary">
         Cada alavanca controla a abertura da comporta do tanque correspondente.
-        Alavanca para frente → comporta mais aberta → maior alívio de pressão,
-        mas cuidado com oscilações e eventos extremos.
+        Alavanca para frente → comporta mais aberta → maior alívio de pressão.
+        Mas cuidado: abrir sempre igual em todos os tanques e não mexer mais
+        pode travar comportas e levar à falha.
       </Typography>
 
       <Box
