@@ -19,15 +19,18 @@ import {
   Snackbar,
   Alert,
   Slider,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
 } from '@mui/material';
 
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
-import WaterDropIcon from '@mui/icons-material/WaterDrop';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 // -----------------------------------------------------------------------------
 // Constantes de Mecânica dos Fluidos e do sistema
@@ -39,9 +42,17 @@ const NUM_TANKS = 10;
 const SIM_TARGET_TIME = 90; // segundos para "sobreviver"
 const DT = 0.25; // passo de tempo (segundos)
 
-// Geometria simples dos tanques
+// Geometria dos tanques
 const TANK_AREA = 15; // m²
 const TANK_MAX_HEIGHT = 5; // m (altura máxima "de projeto")
+
+// Secura / nível baixo
+const LOW_LEVEL_THRESHOLD = 0.2;   // "nível muito baixo" (aviso amarelo)
+const DRY_LEVEL_THRESHOLD = 0.05;  // "seco" de verdade (quase zero)
+const DRY_TIME_LIMIT = 5;          // não pode ficar seco por mais de 5 s
+
+// Sobrepressão
+const OVERPRESSURE_TIME_LIMIT = 5; // não pode ficar acima do limite por mais de 5 s
 
 // -----------------------------------------------------------------------------
 // Materiais da comporta (global, igual para todos os tanques)
@@ -104,19 +115,6 @@ function createRandomTankEvent() {
   };
 }
 
-// Evento determinístico de "comporta travada" por alavanca parada
-function createStuckGateEvent() {
-  return {
-    type: 'stuck_gate',
-    label: 'Comporta travada',
-    description:
-      'A comporta travou por ficar muito tempo na mesma posição. É necessário redobrar a atenção.',
-    flowMultiplier: 1.0,
-    blockOutflow: true,
-    remainingTime: 6 + Math.random() * 4, // 6–10 s
-  };
-}
-
 // -----------------------------------------------------------------------------
 // Estados iniciais
 // -----------------------------------------------------------------------------
@@ -132,8 +130,8 @@ function createInitialTanks() {
     failureReason: null, // 'overpressure' | 'dry'
     event: null,
     previousUtilization: 0,
-    lowLevelTime: 0, // tempo acumulado em nível muito baixo
-    staticTime: 0, // tempo desde a última mudança de alavanca
+    lowLevelTime: 0,        // tempo acumulado em nível seco
+    overpressureTime: 0,    // tempo acumulado em sobrepressão
   }));
 }
 
@@ -221,7 +219,6 @@ function MultiTankPressureControlGamePage() {
           ? {
               ...t,
               gateOpening: value,
-              staticTime: 0, // mexeu na alavanca → zera tempo parado
             }
           : t
       )
@@ -233,10 +230,8 @@ function MultiTankPressureControlGamePage() {
   };
 
   // ---------------------------------------------------------------------------
-  // Loop de simulação: dinâmica dos tanques + eventos + falhas/sucesso
-  //  - stressFactor: aumenta gradualmente a vazão média do sistema.
-  //  - staticTime: se a alavanca ficar muito tempo parada → evento de comporta travada.
-// ---------------------------------------------------------------------------
+  // Loop de simulação
+  // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!game.isRunning || game.isGameOver) return;
 
@@ -270,11 +265,8 @@ function MultiTankPressureControlGamePage() {
             event,
             previousUtilization,
             lowLevelTime,
-            staticTime,
+            overpressureTime,
           } = tank;
-
-          // Acumula tempo sem mexer na alavanca
-          staticTime += dt;
 
           // Atualiza / gera evento aleatório
           let newEvent = event;
@@ -290,13 +282,6 @@ function MultiTankPressureControlGamePage() {
             if (Math.random() < eventChance) {
               newEvent = createRandomTankEvent();
             }
-          }
-
-          // Evento determinístico: comporta travada por alavanca parada
-          const STATIC_TIME_LIMIT = 18; // s
-          if (!newEvent && staticTime > STATIC_TIME_LIMIT) {
-            newEvent = createStuckGateEvent();
-            staticTime = 0; // reseta após disparar o evento
           }
 
           // Vazão de entrada aleatória com stress global + evento
@@ -339,36 +324,40 @@ function MultiTankPressureControlGamePage() {
           let isFailed = tank.isFailed;
           let failureReason = tank.failureReason;
 
-          // Monitor de nível muito baixo (falha operacional se operar quase seco por muito tempo)
-          const LOW_LEVEL_THRESHOLD = 0.2; // m
-          const DRY_TIME = 8; // s em nível muito baixo até falhar
-
-          if (waterHeight < LOW_LEVEL_THRESHOLD) {
+          // Monitor de nível seco: se h < DRY_LEVEL_THRESHOLD, começa a contar
+          if (waterHeight < DRY_LEVEL_THRESHOLD) {
             lowLevelTime += dt;
           } else {
             lowLevelTime = 0;
           }
 
-          // Falha por ultrapassar o limite de pressão/força
-          if (!isFailed && utilization > 1) {
-            isFailed = true;
-            failureReason = 'overpressure';
-            if (!tickResult.failEvent) {
-              tickResult.failEvent = {
-                tankName: tank.name,
-                reason: 'overpressure',
-              };
-            }
+          // Monitor de sobrepressão: se U > 1, começa a contar
+          if (utilization > 1) {
+            overpressureTime += dt;
+          } else {
+            overpressureTime = 0;
           }
 
-          // Falha por operar quase seco muito tempo
-          if (!isFailed && lowLevelTime > DRY_TIME) {
+          // Falha por tanque seco por mais de 5 s
+          if (!isFailed && lowLevelTime > DRY_TIME_LIMIT) {
             isFailed = true;
             failureReason = 'dry';
             if (!tickResult.failEvent) {
               tickResult.failEvent = {
                 tankName: tank.name,
                 reason: 'dry',
+              };
+            }
+          }
+
+          // Falha por sobrepressão por mais de 5 s
+          if (!isFailed && overpressureTime > OVERPRESSURE_TIME_LIMIT) {
+            isFailed = true;
+            failureReason = 'overpressure';
+            if (!tickResult.failEvent) {
+              tickResult.failEvent = {
+                tankName: tank.name,
+                reason: 'overpressure',
               };
             }
           }
@@ -391,7 +380,7 @@ function MultiTankPressureControlGamePage() {
             failureReason,
             previousUtilization: utilization,
             lowLevelTime,
-            staticTime,
+            overpressureTime,
           };
         });
       });
@@ -428,8 +417,8 @@ function MultiTankPressureControlGamePage() {
         const { tankName, reason } = tickResult.failEvent;
         const msg =
           reason === 'overpressure'
-            ? `${tankName} explodiu por excesso de pressão na comporta!`
-            : `${tankName} ficou praticamente seco por muito tempo. Você perdeu o controle hidráulico desse tanque.`;
+            ? `${tankName} explodiu: a força na comporta ficou acima do limite por mais de ${OVERPRESSURE_TIME_LIMIT} s!`
+            : `${tankName} ficou seco por mais de ${DRY_TIME_LIMIT} s. Você perdeu o controle hidráulico desse tanque.`;
         setPopup({
           open: true,
           severity: 'error',
@@ -482,8 +471,9 @@ function MultiTankPressureControlGamePage() {
         <Typography variant="subtitle1" color="text.secondary">
           Controle <strong>10 tanques de água</strong> ao mesmo tempo. Use as
           alavancas na parte inferior para abrir/fechar as comportas, aliviar a
-          pressão e evitar tanto explosões quanto operação quase seca. Cuidado:
-          deixar tudo na mesma posição por muito tempo pode travar a comporta.
+          pressão e evitar tanto explosões quanto tanques secos. Se um tanque
+          ficar seco ou em sobrepressão, você terá apenas {DRY_TIME_LIMIT} s /{' '}
+          {OVERPRESSURE_TIME_LIMIT} s para corrigir antes da falha.
         </Typography>
       </Box>
 
@@ -537,7 +527,7 @@ function MultiTankPressureControlGamePage() {
           >
             <CardHeader
               title="Tanques de água"
-              subheader="Monitore níveis e pressões em uma grade fixa de 10 tanques."
+              subheader="Monitore níveis, pressões e contagens regressivas para tanques secos e em sobrepressão."
             />
             <CardContent
               sx={{
@@ -614,7 +604,7 @@ function MultiTankPressureControlGamePage() {
 export default MultiTankPressureControlGamePage;
 
 // -----------------------------------------------------------------------------
-// Painel geral (esquerda)
+// Painel geral (esquerda) com teoria em Accordion
 // -----------------------------------------------------------------------------
 function GameControlPanel({
   game,
@@ -708,8 +698,9 @@ function GameControlPanel({
             </Typography>
             <Typography variant="caption" color="text.secondary">
               Você vence se chegar ao fim do tempo sem que nenhum tanque
-              ultrapasse o limite de pressão na comporta e sem operar quase
-              seco por muito tempo.
+              ultrapasse o limite de pressão na comporta por mais de{' '}
+              {OVERPRESSURE_TIME_LIMIT} s e sem que qualquer tanque permaneça
+              seco por mais de {DRY_TIME_LIMIT} s.
             </Typography>
           </Box>
 
@@ -843,36 +834,170 @@ function GameControlPanel({
               <Typography variant="caption" color="text.secondary">
                 Conceito chave: a força hidrostática em uma comporta vertical
                 aumenta com o <strong>quadrado</strong> da altura da coluna
-                d&apos;água (F ∝ h²). Um pequeno aumento em altura pode
-                provocar um grande aumento de força.
+                d&apos;água (F ∝ h²).
               </Typography>
             </Stack>
           </Box>
 
           <Divider />
 
+          {/* Condições de falha, sucesso e teoria usada */}
           <Box>
             <Typography variant="subtitle2" gutterBottom>
               Condições de falha e sucesso
             </Typography>
+
+            {/* Condições práticas do jogo */}
             <Typography variant="body2">
-              • Se a força na comporta de qualquer tanque ultrapassar o limite
-              de projeto → <strong>tanque explode</strong> e o jogo termina.
+              • Se a <strong>força na comporta</strong> de qualquer tanque
+              permanecer acima do limite de projeto por mais de{' '}
+              {OVERPRESSURE_TIME_LIMIT} s →{' '}
+              <strong>tanque explode por sobrepressão</strong> e o jogo
+              termina.
             </Typography>
             <Typography variant="body2">
-              • Se o nível de água de um tanque ficar muito baixo por muito
-              tempo → <strong>falha operacional</strong> (tanque operando
-              praticamente seco).
+              • Se o <strong>tanque ficar seco</strong> (nível de água
+              praticamente zero) por mais de {DRY_TIME_LIMIT} s →{' '}
+              <strong>falha operacional</strong>.
             </Typography>
-            <Typography variant="body2">
-              • Se você deixar uma alavanca na mesma posição por muito tempo, a
-              comporta pode <strong>travar</strong>, impedindo o alívio de
-              pressão.
+            <Typography variant="body2" sx={{ mb: 1 }}>
+              • Se nenhum tanque falhar até o fim do tempo de simulação →{' '}
+              <strong>você conseguiu controlar o sistema</strong>.
             </Typography>
-            <Typography variant="body2">
-              • Se nenhum tanque falhar até o fim do tempo de simulação →
-              <strong> você conseguiu controlar o sistema</strong>.
-            </Typography>
+
+            {/* BLOCO TEÓRICO EXPANSÍVEL */}
+            <Accordion sx={{ mt: 1 }}>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography variant="subtitle2">
+                  Ver modelagem física e fórmulas de Mecânica dos Fluidos
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Typography variant="body2">
+                  1. <strong>Pressão hidrostática no fundo do tanque</strong>
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  p = ρ · g · h
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  display="block"
+                >
+                  ρ = densidade do fluido (≈ 1000 kg/m³ para água), g =
+                  gravidade (≈ 9,81 m/s²), h = altura da coluna d&apos;água
+                  acima da base.
+                </Typography>
+
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  2. <strong>Força hidrostática resultante na comporta</strong>
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  F = ½ · ρ · g · h² · b
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  display="block"
+                >
+                  A comporta é modelada como um painel vertical retangular
+                  apoiado no fundo. No código usamos h_eff (altura de água
+                  atuante) e b = largura da comporta. F é calculada em N e
+                  convertida para kN.
+                </Typography>
+
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  3. <strong>Critério de falha por sobrepressão</strong>
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Utilização estrutural: U = F / F_limite
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  display="block"
+                >
+                  • U &lt; 1 → comporta dentro do limite estrutural.
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  display="block"
+                >
+                  • U ≥ 1 mantido por mais de {OVERPRESSURE_TIME_LIMIT} s → a
+                  força excede o limite por tempo suficiente para caracterizar
+                  ruptura da comporta (explosão do tanque no jogo).
+                </Typography>
+
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  4. <strong>Altura da água a partir do volume</strong>
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  h = V / A
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  display="block"
+                >
+                  V(t) é o volume de água no tanque, A é a área em planta do
+                  tanque. O jogo atualiza V a cada passo e converte em altura h.
+                </Typography>
+
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  5. <strong>Balanço de volume (entrada e saída)</strong>
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  V(t + Δt) = V(t) + (Q_in − Q_out) · Δt
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  display="block"
+                >
+                  • Q_in: vazão de entrada aleatória, afetada por eventos
+                  extremos e pelo “stress” global (tempestade).
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  display="block"
+                >
+                  • Q_out: vazão de saída pela comporta, controlada pela
+                  alavanca.
+                </Typography>
+
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  6. <strong>Vazão de saída pela comporta (tipo orifício)</strong>
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Q_out = C_d · A_efetiva · √(2 · g · h) · abertura
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  display="block"
+                >
+                  C_d = coeficiente de descarga; A_efetiva = fração da área da
+                  comporta; h = altura de água; abertura = posição da alavanca
+                  (0 a 1).
+                </Typography>
+
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  7. <strong>Falha por tanque seco (aspecto operacional)</strong>
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  display="block"
+                >
+                  Se h ficar abaixo de um limiar mínimo (tanque praticamente
+                  seco) por mais de {DRY_TIME_LIMIT} s, o sistema é considerado
+                  fora da faixa segura de operação (risco de cavitação, entrada
+                  de ar, etc.), e o jogo registra uma falha operacional.
+                </Typography>
+              </AccordionDetails>
+            </Accordion>
           </Box>
         </Stack>
       </CardContent>
@@ -898,8 +1023,25 @@ function TankCard({ tank, gateConfig }) {
     (0.5 * RHO * G * h_eff * h_eff * gateWidth) / 1000;
   const utilization = limitForce > 0 ? F_h_kN / limitForce : 0;
 
-  const isCritical = !tank.isFailed && utilization >= 0.85 && h > 0.1;
-  const isLow = !tank.isFailed && h < 0.2;
+  // estados lógicos
+  const isCritical =
+    !tank.isFailed && utilization >= 0.85 && utilization <= 1 && h > 0.1;
+  const isOverpress = !tank.isFailed && utilization > 1;
+  const isLow = !tank.isFailed && h < LOW_LEVEL_THRESHOLD;
+  // só consideramos "seco com contagem" depois que o tempo seco começou a contar
+  const isDry =
+    !tank.isFailed &&
+    h < DRY_LEVEL_THRESHOLD &&
+    (tank.lowLevelTime || 0) > 0;
+
+  const dryTimeRemaining = Math.max(
+    0,
+    DRY_TIME_LIMIT - (tank.lowLevelTime || 0)
+  );
+  const explosionTimeRemaining = Math.max(
+    0,
+    OVERPRESSURE_TIME_LIMIT - (tank.overpressureTime || 0)
+  );
 
   let statusLabel = 'Estável';
   let chipColor = 'default';
@@ -910,8 +1052,14 @@ function TankCard({ tank, gateConfig }) {
         ? 'Falha: tanque seco'
         : 'Falha: explosão';
     chipColor = 'error';
+  } else if (isOverpress) {
+    statusLabel = 'Pressão crítica';
+    chipColor = 'error';
   } else if (isCritical) {
-    statusLabel = 'Crítico';
+    statusLabel = 'Quase no limite';
+    chipColor = 'warning';
+  } else if (isDry) {
+    statusLabel = 'Seco (contagem regressiva)';
     chipColor = 'error';
   } else if (isLow) {
     statusLabel = 'Nível muito baixo';
@@ -936,7 +1084,7 @@ function TankCard({ tank, gateConfig }) {
       sx={{
         p: 1.2,
         borderRadius: 2,
-        height: '100%',
+        height: 210,              // <-- altura fixa
         display: 'flex',
         flexDirection: 'column',
         gap: 0.6,
@@ -944,12 +1092,12 @@ function TankCard({ tank, gateConfig }) {
         borderWidth: 2,
         borderColor: tank.isFailed
           ? 'error.main'
-          : isCritical
+          : isOverpress || isDry || isCritical
           ? 'warning.main'
           : 'divider',
         boxShadow: tank.isFailed
           ? '0 0 18px rgba(244,67,54,0.9)'
-          : isCritical
+          : isOverpress || isDry || isCritical
           ? '0 0 12px rgba(255,193,7,0.7)'
           : 'none',
         '@keyframes criticalPulse': {
@@ -957,9 +1105,10 @@ function TankCard({ tank, gateConfig }) {
           '100%': { boxShadow: '0 0 18px rgba(255,193,7,0.9)' },
         },
         animation:
-          isCritical && !tank.isFailed
+          (isOverpress || isDry || isCritical) && !tank.isFailed
             ? 'criticalPulse 0.9s ease-in-out infinite alternate'
             : 'none',
+        overflow: 'hidden',       // <-- impede o card de crescer
       }}
     >
       <Stack
@@ -968,7 +1117,9 @@ function TankCard({ tank, gateConfig }) {
         justifyContent="space-between"
         sx={{ mb: 0.4 }}
       >
-        <Typography variant="subtitle2">{tank.name}</Typography>
+        <Typography variant="subtitle2" noWrap>
+          {tank.name}
+        </Typography>
         <Chip
           size="small"
           label={statusLabel}
@@ -981,13 +1132,14 @@ function TankCard({ tank, gateConfig }) {
       <Box
         sx={{
           position: 'relative',
-          height: 110,
+          height: 90,
           borderRadius: 2,
           border: '1px solid',
           borderColor: 'grey.600',
           overflow: 'hidden',
           bgcolor: 'grey.900',
-          mb: 0.7,
+          mb: 0.5,
+          flexShrink: 0,
         }}
       >
         {/* Água */}
@@ -1033,14 +1185,24 @@ function TankCard({ tank, gateConfig }) {
         variant="determinate"
         value={Math.min(130, utilization * 100)}
         sx={{
-          mt: 0.4,
+          mt: 0.3,
           height: 6,
           borderRadius: 3,
+          flexShrink: 0,
         }}
       />
 
-      {/* Evento ativo */}
-      <Box sx={{ mt: 0.5 }}>
+      {/* Evento + cronômetros de falha */}
+      <Box
+        sx={{
+          mt: 0.4,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 0.3,
+          minHeight: 32,    // <-- reserva espaço fixo p/ chips / mensagens
+          flexShrink: 0,
+        }}
+      >
         {tank.event ? (
           <Chip
             size="small"
@@ -1051,9 +1213,29 @@ function TankCard({ tank, gateConfig }) {
             )} s)`}
           />
         ) : (
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" color="text.secondary" noWrap>
             Sem evento extremo
           </Typography>
+        )}
+
+        {isDry && !tank.isFailed && (
+          <Chip
+            size="small"
+            color="error"
+            variant="outlined"
+            label={`Tanque seco – falha em ${dryTimeRemaining.toFixed(1)} s`}
+          />
+        )}
+
+        {isOverpress && !tank.isFailed && (
+          <Chip
+            size="small"
+            color="error"
+            variant="outlined"
+            label={`Pressão crítica – explosão em ${explosionTimeRemaining.toFixed(
+              1
+            )} s`}
+          />
         )}
       </Box>
     </Paper>
@@ -1077,8 +1259,8 @@ function LeversRow({
       <Typography variant="caption" color="text.secondary">
         Cada alavanca controla a abertura da comporta do tanque correspondente.
         Alavanca para frente → comporta mais aberta → maior alívio de pressão.
-        Mas cuidado: abrir sempre igual em todos os tanques e não mexer mais
-        pode travar comportas e levar à falha.
+        Ajuste com cuidado para não deixar a pressão subir demais nem o tanque
+        secar por muito tempo.
       </Typography>
 
       <Box
@@ -1142,7 +1324,9 @@ function LeverControl({ tank, disabled, onChange, labelPosition }) {
         gap: 0.5,
       }}
     >
-      <Typography variant="caption">{label}</Typography>
+      <Typography variant="caption" noWrap>
+        {label}
+      </Typography>
       <Paper
         variant="outlined"
         sx={{
