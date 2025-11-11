@@ -5,6 +5,7 @@ import PressureChart from './components/PressureChart';
 import HeatPlaygroundPage from './components/HeatPlaygroundPage';
 import HeatTransferLab from './components/HeatTransferLab';
 import MaterialPropertiesLab from './components/MaterialPropertiesLab';
+import FluidMechanicsMinigamePage from './components/FluidMechanicsMinigamePage';
 import ThermalSystemPage from './components/ThermalSystem';
 import { ThemeModeContext } from './providers';
 import { useTheme, alpha } from '@mui/material/styles';
@@ -237,6 +238,7 @@ export default function Home() {
         <Tab label="Laboratório de Propriedades" value="MaterialPropertiesLab" />
         {/* <Tab label="Playground de Calor" value="HeatPlayground" /> */}
         <Tab label="Cálculadora de Resistência térmica" value="ThermalSystem" />
+        <Tab label="FluidMechanicsMinigamePage" value="FluidMechanicsMinigamePage" />
       </Tabs>
 
       {tab === 'simulador' && (
@@ -460,6 +462,11 @@ export default function Home() {
       {tab === 'ThermalSystem' && (
         <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
           <ThermalSystemPage />
+        </Box>
+      )}
+      {tab === 'FluidMechanicsMinigamePage' && (
+        <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          <FluidMechanicsMinigamePage />
         </Box>
       )}
     </Container>
