@@ -993,8 +993,7 @@ function GameControlPanel({
                 >
                   Se h ficar abaixo de um limiar mínimo (tanque praticamente
                   seco) por mais de {DRY_TIME_LIMIT} s, o sistema é considerado
-                  fora da faixa segura de operação (risco de cavitação, entrada
-                  de ar, etc.), e o jogo registra uma falha operacional.
+                  fora da faixa segura de operação, e o jogo registra uma falha operacional.
                 </Typography>
               </AccordionDetails>
             </Accordion>

@@ -238,7 +238,7 @@ export default function Home() {
         <Tab label="Laboratório de Propriedades" value="MaterialPropertiesLab" />
         {/* <Tab label="Playground de Calor" value="HeatPlayground" /> */}
         <Tab label="Cálculadora de Resistência térmica" value="ThermalSystem" />
-        <Tab label="MultiTankPressureControlGamePage" value="MultiTankPressureControlGamePage" />
+        <Tab label="Controle os Tanques" value="MultiTankPressureControlGamePage" />
       </Tabs>
 
       {tab === 'simulador' && (

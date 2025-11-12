@@ -165,7 +165,6 @@ function ThermalSystemPage() {
         if (oldIndex === -1) return prev;
         if (newIndex === -1) newIndex = prev.length - 1;
         const moved = arrayMove(prev, oldIndex, newIndex);
-        // grupos paralelos continuam definidos por parallelGroupId
         return moved;
       });
       return;
@@ -174,7 +173,6 @@ function ThermalSystemPage() {
     // Arrastar do catálogo para a composição
     if (activeFrom === 'catalog') {
       if (!isOverContainer && !isOverLayer) {
-        // soltou em lugar que não é composição -> ignora
         return;
       }
 
@@ -244,12 +242,10 @@ function ThermalSystemPage() {
 
       const newComp = [...prev];
 
-      // Garante que a camada base também esteja no grupo paralelo
       if (!baseLayer.parallelGroupId) {
         newComp[index] = { ...baseLayer, parallelGroupId: groupId };
       }
 
-      // Insere logo após o último membro atual do grupo
       let insertIndex = index + 1;
       while (
         insertIndex < newComp.length &&
@@ -272,7 +268,6 @@ function ThermalSystemPage() {
 
       let next = prev.filter((layer) => layer.instanceId !== layerId);
 
-      // Se o grupo paralelo ficar com apenas 1 camada, remove o "status paralelo"
       if (groupId) {
         const remaining = next.filter((l) => l.parallelGroupId === groupId);
         if (remaining.length <= 1) {
@@ -285,7 +280,6 @@ function ThermalSystemPage() {
       return next;
     });
 
-    // Limpa resistências de contato associadas a essa camada
     setContactResistances((prev) => {
       const newMap = {};
       Object.entries(prev).forEach(([key, val]) => {
@@ -353,7 +347,7 @@ function ThermalSystemPage() {
     while (i < nLayers) {
       const layer = composition[i];
 
-      // Verifica se este índice é o início de um grupo em paralelo
+      // Início de grupo em paralelo?
       const pgId = layer.parallelGroupId;
       if (pgId) {
         let j = i + 1;
@@ -410,7 +404,7 @@ function ThermalSystemPage() {
           i = j;
           continue;
         }
-        // Se groupSize === 1, cai no caso "camada em série" abaixo.
+        // Se groupSize === 1, volta pro caso normal (série)
       }
 
       // Camada em série (normal)
@@ -494,11 +488,6 @@ function ThermalSystemPage() {
           </Typography>
         </Box>
 
-        {/* 
-          Grid SEMPRE em uma linha (nowrap). 
-          Se a tela ficar estreita, surge scroll horizontal,
-          mas o card de resultados permanece sempre à direita.
-        */}
         <Grid
           container
           spacing={2}
@@ -650,7 +639,7 @@ function CatalogDraggable({ material }) {
 
   const style = {
     transform: CSS.Translate.toString(transform),
-    opacity: isDragging ? 0.2 : 1, // fantasma enquanto overlay aparece
+    opacity: isDragging ? 0.2 : 1,
     cursor: isDragging ? 'grabbing' : 'grab',
   };
 
@@ -888,7 +877,7 @@ function SortableLayer({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.2 : 1, // real apagado, overlay por cima
+    opacity: isDragging ? 0.2 : 1,
     cursor: isDragging ? 'grabbing' : 'grab',
   };
 
@@ -1051,7 +1040,7 @@ function MaterialLayerCard({
   );
 }
 
-// Conector de resistência de contato – cor bem visível
+// Conector de resistência de contato
 function ContactResistanceConnector({ enabled, value, onToggle, onChange }) {
   return (
     <Stack direction="row" alignItems="center" spacing={1} sx={{ my: 1 }}>
@@ -1165,7 +1154,122 @@ function ConvectionCard({ label, side, config, onChange }) {
   );
 }
 
+// -----------------------------------------------------------------------------
+// Resumo teórico das fórmulas utilizadas
+// -----------------------------------------------------------------------------
+function TheoreticalSummary() {
+  return (
+    <Box>
+      <Typography variant="subtitle1" gutterBottom>
+        Fundamentos teóricos utilizados
+      </Typography>
+
+      <Typography variant="body2" color="text.secondary" paragraph>
+        Considera-se área A = 1 m² em todos os cálculos.
+      </Typography>
+
+      <Stack spacing={1.5}>
+        <Box>
+          <Typography variant="subtitle2">
+            1. Condução em uma camada (em série)
+          </Typography>
+          <Typography variant="body2">
+            • Condutividade térmica: <b>k</b> [W/m·K]
+          </Typography>
+          <Typography variant="body2">
+            • Espessura da camada: <b>L</b> [m]
+          </Typography>
+          <Typography variant="body2">
+            • Resistência da camada: <b>R = L / k</b> [m²·K/W]
+          </Typography>
+        </Box>
+
+        <Box>
+          <Typography variant="subtitle2">
+            2. Convecção (superfície – ambiente)
+          </Typography>
+          <Typography variant="body2">
+            • Coeficiente de convecção: <b>h</b> [W/m²·K]
+          </Typography>
+          <Typography variant="body2">
+            • Resistência de convecção:{' '}
+            <b>
+              R<sub>conv</sub> = 1 / h
+            </b>{' '}
+            [m²·K/W]
+          </Typography>
+        </Box>
+
+        <Box>
+          <Typography variant="subtitle2">
+            3. Resistência de contato entre camadas
+          </Typography>
+          <Typography variant="body2">
+            • Valor definido pelo usuário:{' '}
+            <b>
+              R<sub>cont</sub>
+            </b>{' '}
+            [m²·K/W]
+          </Typography>
+          <Typography variant="body2">
+            • Entra na soma como mais um termo em série:{' '}
+            <b>
+              R<sub>total</sub> += R<sub>cont</sub>
+            </b>
+          </Typography>
+        </Box>
+
+        <Box>
+          <Typography variant="subtitle2">
+            4. Grupo de camadas em paralelo
+          </Typography>
+          <Typography variant="body2">
+            Cada camada do grupo em paralelo tem resistência{' '}
+            <b>
+              R<sub>i</sub> = L<sub>i</sub> / k<sub>i</sub>
+            </b>
+            . O equivalente do grupo é:
+          </Typography>
+          <Typography variant="body2" sx={{ ml: 2 }}>
+            • <b>1 / R<sub>eq</sub> = Σ (1 / R<sub>i</sub>)</b>
+          </Typography>
+          <Typography variant="body2" sx={{ ml: 2 }}>
+            • <b>R<sub>eq</sub> = 1 / Σ (1 / R<sub>i</sub>)</b>
+          </Typography>
+        </Box>
+
+        <Box>
+          <Typography variant="subtitle2">
+            5. Combinação em série (sistema completo)
+          </Typography>
+          <Typography variant="body2">
+            Todos os elementos em série (convecções, camadas simples e grupos
+            em paralelo já equivalentes) são somados:
+          </Typography>
+          <Typography variant="body2" sx={{ ml: 2 }}>
+            • <b>R<sub>total</sub> = Σ R<sub>elemento</sub></b>
+          </Typography>
+        </Box>
+
+        <Box>
+          <Typography variant="subtitle2">
+            6. (Opcional) Coeficiente global de transmissão
+          </Typography>
+          <Typography variant="body2">
+            A partir da resistência total, pode-se obter o coeficiente U:
+          </Typography>
+          <Typography variant="body2" sx={{ ml: 2 }}>
+            • <b>U = 1 / R<sub>total</sub></b> [W/m²·K]
+          </Typography>
+        </Box>
+      </Stack>
+    </Box>
+  );
+}
+
+// -----------------------------------------------------------------------------
 // Resumo (coluna da direita)
+// -----------------------------------------------------------------------------
 function ResistanceSummary({ totalFormatted, details, breakdownExpression }) {
   return (
     <Card
@@ -1177,8 +1281,15 @@ function ResistanceSummary({ totalFormatted, details, breakdownExpression }) {
       }}
     >
       <CardHeader title="Resultados de resistência térmica" />
-      <CardContent sx={{ flex: 1, overflowY: 'auto' }}>
-        <Stack spacing={2}>
+      <CardContent
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <Stack spacing={2} sx={{ flex: 1, minHeight: 0 }}>
           <Box>
             <Typography variant="h5" fontWeight={700}>
               R_total = {totalFormatted} m²·K/W
@@ -1211,12 +1322,9 @@ function ResistanceSummary({ totalFormatted, details, breakdownExpression }) {
 
           <Divider />
 
-          <Box>
-            <Typography variant="subtitle2" color="text.secondary">
-              Expressão:
-            </Typography>
-            <Typography variant="body2">{breakdownExpression}</Typography>
-          </Box>
+          <Divider />
+
+          <TheoreticalSummary />
         </Stack>
       </CardContent>
     </Card>
