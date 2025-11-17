@@ -4,6 +4,8 @@ Aplicação **Next.js (App Router)** que reúne simuladores interativos para apo
 
 A aplicação utiliza componentes client-side em **React** com **Material UI, Chart.js, Recharts** e **dnd-kit** para visualização dinâmica de fenômenos de **mecânica dos fluidos**, **transferência de calor** e **análise de propriedades termofísicas**.
 
+> ⚠️ As equações neste README usam sintaxe LaTeX com `$...$` e `$$...$$`, compatível com renderização matemática em Markdown (ex.: GitHub).
+
 ---
 
 ## 🎓 Alinhamento com o plano de ensino da disciplina EES7527
@@ -17,15 +19,17 @@ A disciplina está organizada em três blocos principais. O FETRANS Lab foi estr
 
 - **HeatTransferLab.jsx**  
   - Introdução às formas de transferência de calor (condução, convecção, radiação).  
-  - Cálculo de fluxos de calor (𝑞ʺ, Q̇) a partir de diferenças de temperatura.
+  - Cálculo de fluxos de calor ($q''$, $\dot{Q}$) a partir de diferenças de temperatura.
 - **MultiTankPressureControlGamePage.jsx**  
-  - Balanço de massa em volume de controle:  
-    \[
+  - Balanço de massa em volume de controle:
+
+    $$
     \frac{dV}{dt} = Q_{\text{in}} - Q_{\text{out}}
-    \]
+    $$
+
   - Intuição sobre armazenamento, entrada e saída de massa em sistemas hidráulicos.
 - **MaterialPropertiesLab.jsx**  
-  - Visualização de propriedades termofísicas (ρ, k, cₚ, μ) e sua relação com energia armazenada e escoamento.
+  - Visualização de propriedades termofísicas ($\rho$, $k$, $c_p$, $\mu$) e sua relação com energia armazenada e escoamento.
 
 ---
 
@@ -36,35 +40,60 @@ A disciplina está organizada em três blocos principais. O FETRANS Lab foi estr
 
 - **HeatTransferLab.jsx**  
   - **Condução 1D em placa plana, regime permanente**  
-    - Perfil de temperatura:  
-      \[
-      T(x) = T_1 + (T_2 - T_1)\frac{x}{L}
-      \]
-    - Gradiente e fluxo de calor:  
-      \[
-      \frac{dT}{dx} = \frac{T_2 - T_1}{L}, \quad
-      q'' = -k\frac{dT}{dx}, \quad
-      \dot{Q} = q''A
-      \]
+
+    Perfil de temperatura:
+
+    $$
+    T(x) = T_1 + (T_2 - T_1)\,\frac{x}{L}
+    $$
+
+    Gradiente e fluxo de calor:
+
+    $$
+    \frac{dT}{dx} = \frac{T_2 - T_1}{L}, \quad
+    q'' = -k\,\frac{dT}{dx}, \quad
+    \dot{Q} = q''\,A
+    $$
+
   - **Convecção (Lei de Newton)**  
-    \[
-    q'' = h(T_s - T_\infty), \quad \dot{Q} = hA(T_s - T_\infty)
-    \]
+
+    $$
+    q'' = h\,(T_s - T_\infty), \quad
+    \dot{Q} = h\,A\,(T_s - T_\infty)
+    $$
+
   - **Radiação térmica (superfície cinza)**  
-    \[
-    q'' = \varepsilon\sigma(T_s^4 - T_{\text{sur}}^4), \quad \dot{Q} = q''A
-    \]
+
+    $$
+    q'' = \varepsilon\,\sigma\,(T_s^4 - T_{\text{sur}}^4), \quad
+    \dot{Q} = q''\,A
+    $$
+
 - **ThermalSystem.jsx** (Calculadora de resistência térmica)  
   - **Equivalência elétrica da transferência de calor**:  
-    - Condução: \(R_{\text{cond}} = \dfrac{L}{k}\)  
-    - Convecção: \(R_{\text{conv}} = \dfrac{1}{h}\)  
-    - Resistência de contato: valor informado em \(\text{m}^2\cdot K/W\)  
-    - Série térmica:  
-      \[
-      R_\text{total} = \sum_i R_i
-      \]
+
+    Condução:
+
+    $$
+    R_{\text{cond}} = \frac{L}{k}
+    $$
+
+    Convecção:
+
+    $$
+    R_{\text{conv}} = \frac{1}{h}
+    $$
+
+    Resistência de contato: valor informado em $\text{m}^2\cdot K/W$  
+
+    Série térmica:
+
+    $$
+    R_\text{total} = \sum_i R_i
+    $$
+
 - **MaterialPropertiesLab.jsx**  
-  - Variação de \(k(T)\), \(c_p(T)\) e ρ(T) com a temperatura para diferentes materiais, relacionando propriedades termofísicas com a capacidade de condução e armazenamento de energia.
+  - Variação de $k(T)$, $c_p(T)$ e $\rho(T)$ com a temperatura para diferentes materiais, relacionando propriedades termofísicas com a capacidade de condução e armazenamento de energia.
 
 ---
 
@@ -74,25 +103,38 @@ A disciplina está organizada em três blocos principais. O FETRANS Lab foi estr
 **Simuladores/recursos usados:**
 
 - **Simulador de Pressão Hidrostática (`app/page.js`)**  
-  - Pressão em função da profundidade para fluidos incompressíveis:  
-    \[
-    P(h) = P_0 + \rho g h
-    \]
+  - Pressão em função da profundidade para fluidos incompressíveis:
+
+    $$
+    P(h) = P_0 + \rho\,g\,h
+    $$
+
   - Comparação de fluidos (água, óleo, mercúrio) e conversão de unidades (Pa, kPa, bar, atm, psi).  
   - Apoia os tópicos de **manometria**, **pressão em um ponto** e **variação de pressão em fluido estático**.
+
 - **MultiTankPressureControlGamePage.jsx**  
-  - **Força hidrostática em comportas**:  
-    \[
-    F_h = \frac{1}{2}\rho g h_{\text{eff}}^2 w
-    \]
-  - **Escoamento por orifício (Torricelli)**:  
-    \[
-    Q_{\text{out}} = C_d A_{\text{comporta}}\sqrt{2gh}, \quad C_d = 0{,}62
-    \]
-  - **Balanço de massa** em sistemas de múltiplos tanques, com condições de falha por sobrepressão e esvaziamento.  
+  - **Força hidrostática em comportas**:
+
+    $$
+    F_h = \frac{1}{2}\,\rho\,g\,h_{\text{eff}}^2\,w
+    $$
+
+  - **Escoamento por orifício (Torricelli)**:
+
+    $$
+    Q_{\text{out}} = C_d\,A_{\text{comporta}}\sqrt{2\,g\,h}, \quad C_d = 0{,}62
+    $$
+
+  - **Balanço de massa** em sistemas de múltiplos tanques, com condições de falha por sobrepressão e esvaziamento:
+
+    $$
+    \frac{dV}{dt} = Q_{\text{in}} - Q_{\text{out}}
+    $$
+
   - Conecta com **forças em corpos submersos**, **empuxo**, **escoamento interno** e noções de escoamento em dutos.
+
 - **MaterialPropertiesLab.jsx**  
-  - **ρ(T)** e **μ(T)** → suporte à discussão de **propriedades dos fluidos**, regimes laminar/turbulento e influência da temperatura no escoamento.
+  - $\rho(T)$ e $\mu(T)$ → suporte à discussão de **propriedades dos fluidos**, regimes laminar/turbulento e influência da temperatura no escoamento.
 
 ---
 
@@ -105,7 +147,7 @@ A disciplina está organizada em três blocos principais. O FETRANS Lab foi estr
 - **Visualização de dados:** Chart.js (via `react-chartjs-2`) e Recharts para gráficos de linha e radar.
 - **Modelagem numérica no front-end:**  
   - Hooks (`useMemo`, `useState`, `useEffect`) para gerar perfis discretizados.  
-  - Controle de domínios (clamp), formatação internacionalizada e simulações em tempo real.
+  - Controle de domínios (*clamp*), formatação internacionalizada e simulações em tempo real.
 
 ### 🔬 Fenômenos de Transporte / Física aplicada
 
@@ -125,12 +167,12 @@ A disciplina está organizada em três blocos principais. O FETRANS Lab foi estr
 
 Pressão absoluta ao longo da profundidade para fluidos incompressíveis:
 
-- **Equação básica:**  
-  \[
-  P(h) = P_0 + \rho g h
-  \]
+$$
+P(h) = P_0 + \rho\,g\,h
+$$
+
 - Conversão automática entre unidades (Pa, kPa, bar, atm, psi).
-- Ajuste de densidade (`ρ`), gravidade (`g`), profundidade máxima (`h`) e número de pontos.
+- Ajuste de densidade ($\rho$), gravidade ($g$), profundidade máxima ($h$) e número de pontos.
 - Interface com card de resultados flutuante e arrastável.
 - Banco de fluidos pré-configurados (água, óleo, mercúrio) ou densidade personalizada.
 
@@ -140,11 +182,11 @@ Pressão absoluta ao longo da profundidade para fluidos incompressíveis:
 
 ### 2. Laboratório de Transferência de Calor (`HeatTransferLab.jsx`)
 
-| Modo                                             | Hipóteses                                            | Fórmulas principais                                                                                                                                             |
-| ------------------------------------------------ | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Condução (placa plana 1D, regime permanente)     | k constante, área A uniforme                         | Perfil linear: \(T(x) = T_1 + (T_2 - T_1)\frac{x}{L}\)  /  Fluxos: \(\frac{dT}{dx} = \frac{T_2 - T_1}{L}\), \(q'' = -k\frac{dT}{dx}\), \(\dot{Q} = q''A\) |
-| Convecção (Lei de Newton)                        | h constante, superfície uniforme                     | \(q'' = h(T_s - T_\infty)\), \(\dot{Q} = hA(T_s - T_\infty)\)                                                                                           |
-| Radiação (superfície cinza p/ ambiente grande)   | ε constante, visão para cavidade grande             | \(q'' = \varepsilon \sigma (T_s^4 - T_{\text{sur}}^4)\), \(\dot{Q} = q''A\)  com conversão automática \(T[K] = T[^\circ C] + 273{,}15\)                       |
+| Modo                                             | Hipóteses                                            | Fórmulas principais                                                                                                                                   |
+| ------------------------------------------------ | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Condução (placa plana 1D, regime permanente)     | $k$ constante, área $A$ uniforme                     | Perfil linear: $T(x) = T_1 + (T_2 - T_1)\dfrac{x}{L}$  •  Fluxos: $\dfrac{dT}{dx} = \dfrac{T_2 - T_1}{L}$, $q'' = -k\dfrac{dT}{dx}$, $\dot{Q} = q''A$ |
+| Convecção (Lei de Newton)                        | $h$ constante, superfície uniforme                   | $q'' = h(T_s - T_\infty)$, $\dot{Q} = hA(T_s - T_\infty)$                                                                                             |
+| Radiação (superfície cinza p/ ambiente grande)   | $\varepsilon$ constante, visão para cavidade grande  | $q'' = \varepsilon \sigma (T_s^4 - T_{\text{sur}}^4)$, $\dot{Q} = q''A$                                                                              |
 
 > **Relaciona-se com:** mecanismos de transmissão de calor, condução 1D em regime permanente, fluxos de calor, 1ª lei da termodinâmica (energia trocada como calor).
 
@@ -152,15 +194,15 @@ Pressão absoluta ao longo da profundidade para fluidos incompressíveis:
 
 ### 3. Laboratório de Propriedades dos Materiais (`MaterialPropertiesLab.jsx`)
 
-- Banco de materiais com propriedades dependentes da temperatura `T` (funções polinomiais/exponenciais simplificadas).
+- Banco de materiais com propriedades dependentes da temperatura $T$ (funções polinomiais/exponenciais simplificadas).
 - Gráficos de variação com a temperatura e gráfico radar normalizado.
 - Propriedades tratadas:
-  - densidade `ρ(T)`
-  - calor específico `c_p(T)`
-  - condutividade térmica `k(T)`
-  - viscosidade dinâmica `μ(T)`
+  - densidade $\rho(T)$
+  - calor específico $c_p(T)$
+  - condutividade térmica $k(T)$
+  - viscosidade dinâmica $\mu(T)$
 
-> **Relaciona-se com:** propriedades da matéria, influência de ρ, μ, k e cₚ em escoamentos e transferência de calor.
+> **Relaciona-se com:** propriedades da matéria, influência de $\rho$, $\mu$, $k$ e $c_p$ em escoamentos e transferência de calor.
 
 ---
 
@@ -168,19 +210,26 @@ Pressão absoluta ao longo da profundidade para fluidos incompressíveis:
 
 Montagem interativa de “sanduíche térmico” com convecções e resistências de contato:
 
-- **Resistência de camada:**  
-  \[
+- **Resistência de camada (condução):**
+
+  $$
   R_{\text{cond}} = \frac{L}{k}
-  \]
-- **Resistência convectiva:**  
-  \[
+  $$
+
+- **Resistência convectiva:**
+
+  $$
   R_{\text{conv}} = \frac{1}{h}
-  \]
-- **Resistência de contato (opcional):** valor informado em \(\text{m}^2\cdot K/W\)
-- **Resistência total:** soma de todas as parcelas em série  
-  \[
+  $$
+
+- **Resistência de contato (opcional):** valor informado em $\text{m}^2\cdot K/W$
+
+- **Resistência total (série térmica):**
+
+  $$
   R_\text{total} = \sum_i R_i
-  \]
+  $$
+
 - Interface drag-and-drop, cálculo dinâmico e detalhamento dos termos.
 
 > **Relaciona-se com:** equivalência elétrica para transferência de calor, condução 1D em parede plana, combinação de resistências térmicas em série.
@@ -193,22 +242,29 @@ Simulador gamificado de controle de **10 tanques hidráulicos** em tempo real co
 
 **Fundamentos físicos:**
 
-- **Volume e altura:**  
-  \[
+- **Volume e altura:**
+
+  $$
   V = A \cdot h, \quad A = 15\,\text{m}^2
-  \]
-- **Força hidrostática na comporta:**  
-  \[
-  F_h = \frac{1}{2}\rho g h_{\text{eff}}^2 w
-  \]
-- **Escoamento por orifício (Torricelli):**  
-  \[
-  Q_{\text{out}} = C_d A_{\text{comporta}}\sqrt{2gh}, \quad C_d = 0{,}62
-  \]
-- **Balanço de massa:**  
-  \[
+  $$
+
+- **Força hidrostática na comporta:**
+
+  $$
+  F_h = \frac{1}{2}\,\rho\,g\,h_{\text{eff}}^2\,w
+  $$
+
+- **Escoamento por orifício (Torricelli):**
+
+  $$
+  Q_{\text{out}} = C_d\,A_{\text{comporta}}\sqrt{2\,g\,h}, \quad C_d = 0{,}62
+  $$
+
+- **Balanço de massa:**
+
+  $$
   \frac{dV}{dt} = Q_{\text{in}} - Q_{\text{out}}
-  \]
+  $$
 
 **Mecânicas do jogo:**
 
@@ -237,5 +293,5 @@ app/
       ├── PressureChart.jsx                      # Wrapper do Line Chart (Chart.js)
       ├── HeatTransferLab.jsx                    # Laboratório de modos de transferência de calor
       ├── MaterialPropertiesLab.jsx              # Análise de propriedades termofísicas
-      ├── ThermalSystem.jsx                      # Calculadora de resistências térmicas
+      └── ThermalSystem.jsx                      # Calculadora de resistências térmicas
       └── MultiTankPressureControlGamePage.jsx   # Jogo de controle hidráulico em tanques
