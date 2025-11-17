@@ -18,15 +18,14 @@ A disciplina está organizada em três blocos principais. O FETRANS Lab foi estr
 - **HeatTransferLab.jsx**  
   - Introdução às formas de transferência de calor (condução, convecção, radiação).  
   - Cálculo de fluxos de calor (𝑞ʺ, Q̇) a partir de diferenças de temperatura.
-- **HeatPlaygroundPage.jsx**  
-  - Balanços de energia em regime transiente (PDE/ODE) aplicados a condução, convecção e radiação.  
-  - Interpretação física da 1ª lei da termodinâmica em forma diferencial.
 - **MultiTankPressureControlGamePage.jsx**  
   - Balanço de massa em volume de controle:  
     \[
     \frac{dV}{dt} = Q_{\text{in}} - Q_{\text{out}}
     \]
   - Intuição sobre armazenamento, entrada e saída de massa em sistemas hidráulicos.
+- **MaterialPropertiesLab.jsx**  
+  - Visualização de propriedades termofísicas (ρ, k, cₚ, μ) e sua relação com energia armazenada e escoamento.
 
 ---
 
@@ -88,7 +87,7 @@ A disciplina está organizada em três blocos principais. O FETRANS Lab foi estr
     \]
   - **Escoamento por orifício (Torricelli)**:  
     \[
-    Q_{\text{out}} = C_d A_{\text{comporta}}\sqrt{2gh}
+    Q_{\text{out}} = C_d A_{\text{comporta}}\sqrt{2gh}, \quad C_d = 0{,}62
     \]
   - **Balanço de massa** em sistemas de múltiplos tanques, com condições de falha por sobrepressão e esvaziamento.  
   - Conecta com **forças em corpos submersos**, **empuxo**, **escoamento interno** e noções de escoamento em dutos.
@@ -227,51 +226,6 @@ Simulador gamificado de controle de **10 tanques hidráulicos** em tempo real co
 
 ---
 
-### 6. Playground de Calor — Simulação Térmica Interativa (`HeatPlaygroundPage.jsx`)  
-> *Comentado/Em desenvolvimento*
-
-Ambiente de simulação com três modos de transferência de calor e elementos de gamificação:
-
-**Modo Condução 1D (FTCS explícito):**
-
-- Solução numérica da equação de difusão térmica:  
-  \[
-  \frac{\partial T}{\partial t} = \alpha \frac{\partial^2 T}{\partial x^2}
-  \]
-- Discretização por diferenças finitas com condições de contorno Dirichlet ajustáveis.
-- Visualização térmica em cores com gradiente azul–vermelho.
-- Termômetros interativos arrastáveis para ajuste das temperaturas de contorno.
-- Objetivo do jogo: acertar a temperatura no centro da barra.
-
-**Modo Convecção (resfriamento de corpo sólido):**
-
-- Solução da equação de resfriamento de Newton:  
-  \[
-  \frac{dT}{dt} = -\frac{hA}{mc_p}(T - T_\infty)
-  \]
-- Controle de coeficiente convectivo \(h\), área \(A\), massa \(m\) e calor específico \(c_p\).
-- Objetivo: resfriar a placa até uma temperatura-alvo com um “ventilador virtual”.
-
-**Modo Radiação (controle térmico de satélite):**
-
-- Balanço de energia com radiação térmica:  
-  \[
-  \frac{dT}{dt} = \frac{\dot{Q}_{\text{sol}} - \varepsilon\sigma A(T^4 - T_{\text{sur}}^4)}{mc_p}
-  \]
-- Simulação de exposição solar intermitente (dia/noite orbital).
-- Objetivo: manter a temperatura do satélite em faixa operacional (15–25°C).
-
-**Características comuns:**
-
-- Renderização em Canvas HTML5 com animação em 60 FPS via `requestAnimationFrame`.
-- Sistema de pontuação dinâmico baseado em performance.
-- Seleção de materiais (cobre, alumínio, aço, madeira, isolante) com propriedades termo-físicas.
-- Interface responsiva e totalmente interativa.
-
-> **Relaciona-se com:** mecanismos de transferência de calor, 1ª lei da termodinâmica em forma diferencial, métodos numéricos (FTCS e ODEs) aplicados a problemas térmicos.
-
----
-
 ## 🗂️ Estrutura relevante do projeto
 
 ```bash
@@ -284,5 +238,4 @@ app/
       ├── HeatTransferLab.jsx                    # Laboratório de modos de transferência de calor
       ├── MaterialPropertiesLab.jsx              # Análise de propriedades termofísicas
       ├── ThermalSystem.jsx                      # Calculadora de resistências térmicas
-      ├── MultiTankPressureControlGamePage.jsx   # Jogo de controle hidráulico em tanques
-      └── HeatPlaygroundPage.jsx                 # Playground térmico interativo (dev)
+      └── MultiTankPressureControlGamePage.jsx   # Jogo de controle hidráulico em tanques
