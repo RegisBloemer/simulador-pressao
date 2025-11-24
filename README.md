@@ -6,7 +6,7 @@ A aplicação utiliza componentes client-side em **React** com **Material UI, Ch
 
 ---
 
-## 🎓 Alinhamento com o plano de ensino da disciplina EES7527
+## Alinhamento com o plano de ensino da disciplina EES7527
 
 ### 🔹 Parte 1 – Introdução térmica, trabalho, calor e balanços de massa/energia
 
@@ -115,9 +115,9 @@ A aplicação utiliza componentes client-side em **React** com **Material UI, Ch
 
 ---
 
-## ℹ️ Principais conhecimentos aplicados
+## Principais conhecimentos aplicados
 
-### 🔧 Computação / Engenharia de Software
+### Computação / Engenharia de Software
 
 - **Front-end:** Next.js 13+, React 18, Context API para tema, CSS Modules/`@mui/material`, componentes client-side.
 - **UI/UX:** Material UI (layout responsivo, cards, abas), ícones, sliders, chips, tooltips, drag-and-drop com dnd-kit.
@@ -126,7 +126,7 @@ A aplicação utiliza componentes client-side em **React** com **Material UI, Ch
   - Hooks (`useMemo`, `useState`, `useEffect`) para gerar perfis discretizados.
   - Controle de domínios (_clamp_), formatação internacionalizada e simulações em tempo real.
 
-### 🔬 Fenômenos de Transporte / Física aplicada
+### Fenômenos de Transporte 
 
 - Hidrostática (pressão com a profundidade, força em comportas).
 - Propriedades termofísicas dependentes da temperatura.
@@ -137,7 +137,7 @@ A aplicação utiliza componentes client-side em **React** com **Material UI, Ch
 
 ---
 
-## 🔬 Modelos físicos implementados
+## Telas da aplicção e funcionalidades principais
 
 ### 1. Simulador de Pressão Hidrostática (`app/page.js`)
 
@@ -188,7 +188,10 @@ $$P(h) = P_0 + \rho gh$$
 ### 4. Calculadora de Resistência Térmica (`ThermalSystem.jsx`)
 
 ![Calculadora de Resistência Térmica](/public/thermal-system.png)
-Montagem interativa de com convecções e resistências de contato:
+
+Montagem interativa de sistemas térmicos complexos com suporte a **resistências em série e em paralelo**, convecção e resistências de contato.
+
+**Cálculo de resistências individuais:**
 
 - **Resistência de camada (condução):**
 
@@ -200,13 +203,38 @@ Montagem interativa de com convecções e resistências de contato:
 
 - **Resistência de contato (opcional):** valor informado em m²·K/W
 
-- **Resistência total (série térmica):**
+**Combinação de resistências:**
 
-  $$R_\text{total} = \sum_i R_i$$
+- **Em série (empilhamento vertical):**
 
-- Interface drag-and-drop, cálculo dinâmico e detalhamento dos termos.
+  $$R_{\text{série}} = R_1 + R_2 + R_3 + \ldots = \sum_i R_i$$
 
-> **Relaciona-se com:** equivalência elétrica para transferência de calor, condução 1D em parede plana, combinação de resistências térmicas em série.
+  _Exemplo:_ Parede de concreto → isolamento EPS → gesso = $R_{\text{total}} = R_{\text{concreto}} + R_{\text{EPS}} + R_{\text{gesso}}$
+
+- **Em paralelo (caminhos alternativos):**
+
+  $$\dfrac{1}{R_{\text{paralelo}}} = \dfrac{1}{R_1} + \dfrac{1}{R_2} + \ldots \quad \Rightarrow \quad R_{\text{paralelo}} = \dfrac{1}{\sum_i \frac{1}{R_i}}$$
+
+  _Exemplo:_ Duas camadas lado a lado (50% tijolo, 50% concreto) = $R_{\text{equiv}} = \dfrac{1}{\frac{1}{R_{\text{tijolo}}} + \frac{1}{R_{\text{concreto}}}}$
+
+- **Sistemas mistos (série + paralelo):**
+
+  Grupos paralelos são primeiro reduzidos a uma resistência equivalente, depois somados em série com as demais camadas.
+
+  _Exemplo:_ Convecção externa → [Tijolo || Concreto] → Isolamento → Convecção interna
+
+  $$R_{\text{total}} = R_{\text{conv,ext}} + R_{\text{paralelo}} + R_{\text{isolamento}} + R_{\text{conv,int}}$$
+
+**Recursos da interface:**
+
+- Interface drag-and-drop para adicionar e reordenar materiais
+- Criação de grupos em paralelo com visualização destacada
+- Cálculo automático e detalhamento passo a passo das resistências
+- Configuração de convecção externa e interna
+- Adição opcional de resistências de contato entre camadas
+- Exibição da expressão matemática completa do cálculo
+
+> **Relaciona-se com:** equivalência elétrica para transferência de calor, condução 1D em parede plana, combinação de resistências térmicas em série e paralelo, análise de sistemas térmicos complexos.
 
 ---
 
