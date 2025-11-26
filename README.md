@@ -1,8 +1,12 @@
 # FETRANS Lab — Trabalho de Fenômenos de Transporte
 
-Aplicação feita com **Next.js** que reúne simuladores interativos para apoiar estudantes a entender e visualizar conceitos da matéria de **Fenômenos de Transporte**.
+## Resumo do projeto
 
-A aplicação utiliza componentes client-side em **React** com **Material UI, Chart.js, Recharts** e **dnd-kit** para visualização dinâmica de fenômenos de **mecânica dos fluidos**, **transferência de calor** e **análise de propriedades**.
+Esta aplicação feita com **Next.js** e reúne telas interativos para apoiar estudantes a entender e visualizar conceitos da materia de **Fenômenos de Transporte**. A plicação por ter um intuito educacional, exibe as formulas principais que são utilizadas em cada simulação bem como legendas explicativas em alguns momentos, também conta com um switch de tema claro/escuro para melhor usabilidade.
+
+Nos meios técnicos, a aplicação utiliza componentes client-side em **React** com **Material UI, Chart.js, Recharts** e **dnd-kit** para visualização dinâmica de fenômenos de **mecânica dos fluidos**, **transferência de calor** e **análise de propriedades**.
+
+A aplicação que esta descrita neste documento esta acessível em: [https://fetrans-lab.vercel.app/](https://fetrans-lab.vercel.app/)
 
 ---
 
@@ -10,9 +14,9 @@ A aplicação utiliza componentes client-side em **React** com **Material UI, Ch
 
 ### 🔹 Parte 1 – Introdução térmica, trabalho, calor e balanços de massa/energia
 
-(Conteúdos: propriedades da matéria, pressão, trabalho, calor, formas de transferência de calor, conservação de energia e massa em sistemas e volumes de controle.)
+Conteudos que utilizamos nas telas a seguir:  propriedades da matéria, pressão, trabalho, calor, formas de transferência de calor, conservação de energia e massa em sistemas e volumes de controle.
 
-**Simuladores/recursos usados:**
+**Telas e conteúdos utilizados especificadamente**
 
 - **HeatTransferLab.jsx**
 
@@ -35,9 +39,9 @@ A aplicação utiliza componentes client-side em **React** com **Material UI, Ch
 
 ### 🔹 Parte 2 – Transferência de Calor (condução 1D em regime permanente)
 
-(Conteúdos: mecanismos de transmissão de calor, condução unidimensional permanente, parede plana, equivalência elétrica.)
+Conteudos que utilizamos nas telas a seguir:  mecanismos de transmissão de calor, condução unidimensional permanente, parede plana, equivalência elétrica.
 
-**Simuladores/recursos usados:**
+**Telas e conteúdos utilizados especificadamente**
 
 - **HeatTransferLab.jsx**
 
@@ -85,9 +89,9 @@ A aplicação utiliza componentes client-side em **React** com **Material UI, Ch
 
 ### 🔹 Parte 3 – Mecânica dos Fluidos
 
-(Conteúdos: definição de fluido, propriedades, manometria, forças em superfícies submersas, empuxo, equações de conservação na forma integral, escoamento em dutos, equação de Bernoulli.)
+Conteudos que utilizamos nas telas a seguir:  definição de fluido, propriedades, manometria, forças em superfícies submersas, empuxo, equações de conservação na forma integral, escoamento em dutos, equação de Bernoulli.
 
-**Simuladores/recursos usados:**
+**Telas e conteúdos utilizados especificadamente**
 
 - **Simulador de Pressão Hidrostática (`app/page.js`)**
 
@@ -117,11 +121,11 @@ A aplicação utiliza componentes client-side em **React** com **Material UI, Ch
 
 - **MaterialPropertiesLab.jsx**
 
-  - ρ(T) e μ(T) → suporte à discussão de **propriedades dos fluidos**, regimes laminar/turbulento e influência da temperatura no escoamento.
+  - ρ(T) e μ(T) → Visualização de **propriedades dos fluidos**.
 
 ---
 
-### Computação / Engenharia de Software
+### Computação e tecnologias utilizadas
 
 - **Front-end:** Next.js 13+, React 18, Context API para tema, CSS Modules/`@mui/material`, componentes client-side.
 - **UI/UX:** Material UI (layout responsivo, cards, abas), ícones, sliders, chips, tooltips, drag-and-drop com dnd-kit.
