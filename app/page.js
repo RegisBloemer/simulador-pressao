@@ -231,6 +231,9 @@ export default function Home() {
         onChange={(_, v) => setTab(v)}
         textColor="primary"
         indicatorColor="primary"
+        variant="scrollable"
+        scrollButtons="auto"
+        allowScrollButtonsMobile
         sx={{ mb: 2 }}
       >
         <Tab label="Simulador de Pressão" value="simulador" />
@@ -240,6 +243,7 @@ export default function Home() {
         <Tab label="Cálculadora de Resistência térmica" value="ThermalSystem" />
         <Tab label="Controle os Tanques" value="MultiTankPressureControlGamePage" />
       </Tabs>
+
 
       {tab === 'simulador' && (
         // ---- LINHA ÚNICA: sidebar esquerda + área do gráfico à direita ----
