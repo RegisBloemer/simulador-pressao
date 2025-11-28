@@ -14,7 +14,7 @@ A aplicação que esta descrita neste documento esta acessível em: [https://fet
 
 ### 🔹 Parte 1 – Introdução térmica, trabalho, calor e balanços de massa/energia
 
-Conteudos que utilizamos nas telas a seguir:  propriedades da matéria, pressão, trabalho, calor, formas de transferência de calor, conservação de energia e massa em sistemas e volumes de controle.
+Conteudos que utilizamos nas telas a seguir: propriedades da matéria, pressão, trabalho, calor, formas de transferência de calor, conservação de energia e massa em sistemas e volumes de controle.
 
 **Telas e conteúdos utilizados especificadamente**
 
@@ -39,7 +39,7 @@ Conteudos que utilizamos nas telas a seguir:  propriedades da matéria, pressão
 
 ### 🔹 Parte 2 – Transferência de Calor (condução 1D em regime permanente)
 
-Conteudos que utilizamos nas telas a seguir:  mecanismos de transmissão de calor, condução unidimensional permanente, parede plana, equivalência elétrica.
+Conteudos que utilizamos nas telas a seguir: mecanismos de transmissão de calor, condução unidimensional permanente, parede plana, equivalência elétrica.
 
 **Telas e conteúdos utilizados especificadamente**
 
@@ -89,7 +89,7 @@ Conteudos que utilizamos nas telas a seguir:  mecanismos de transmissão de calo
 
 ### 🔹 Parte 3 – Mecânica dos Fluidos
 
-Conteudos que utilizamos nas telas a seguir:  definição de fluido, propriedades, manometria, forças em superfícies submersas, empuxo, equações de conservação na forma integral, escoamento em dutos, equação de Bernoulli.
+Conteudos que utilizamos nas telas a seguir: definição de fluido, propriedades, manometria, forças em superfícies submersas, empuxo, equações de conservação na forma integral, escoamento em dutos, equação de Bernoulli.
 
 **Telas e conteúdos utilizados especificadamente**
 
@@ -321,13 +321,9 @@ Montagem interativa de sistemas térmicos com suporte a **resistências em séri
 
 > **Relaciona-se com:** equivalência elétrica para transferência de calor, condução 1D em parede plana, combinação de resistências térmicas em série e paralelo, análise de sistemas térmicos complexos.
 
-#### Como usar esta tela
-
-Perfeito, vamos refazer só a parte de **“Como usar esta tela”** pensando exatamente nessa UI da calculadora.
-
-Você pode substituir o trecho antigo por este aqui:
-
 ---
+
+#### Como usar esta tela
 
 #### Como usar esta tela (passo a passo)
 
