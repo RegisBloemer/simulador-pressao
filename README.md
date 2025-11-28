@@ -6,7 +6,7 @@ Esta aplicação feita com **Next.js** e reúne telas interativos para apoiar es
 
 Nos meios técnicos, a aplicação utiliza componentes client-side em **React** com **Material UI, Chart.js, Recharts** e **dnd-kit** para visualização dinâmica de fenômenos de **mecânica dos fluidos**, **transferência de calor** e **análise de propriedades**.
 
-A aplicação que esta descrita neste documento esta acessível em: [https://fetrans-lab.vercel.app/](https://fetrans-lab.vercel.app/)
+A aplicação que esta descrita neste documento esta acessível em: [fetrans-lab.vercel.app](https://fetrans-lab.vercel.app/)
 
 ---
 
@@ -14,7 +14,7 @@ A aplicação que esta descrita neste documento esta acessível em: [https://fet
 
 ### 🔹 Parte 1 – Introdução térmica, trabalho, calor e balanços de massa/energia
 
-Conteudos que utilizamos nas telas a seguir: propriedades da matéria, pressão, trabalho, calor, formas de transferência de calor, conservação de energia e massa em sistemas e volumes de controle.
+Conteúdos que utilizamos nas telas a seguir: propriedades da matéria, pressão, trabalho, calor, formas de transferência de calor, conservação de energia e massa em sistemas e volumes de controle.
 
 **Telas e conteúdos utilizados especificadamente**
 
@@ -39,7 +39,7 @@ Conteudos que utilizamos nas telas a seguir: propriedades da matéria, pressão,
 
 ### 🔹 Parte 2 – Transferência de Calor (condução 1D em regime permanente)
 
-Conteudos que utilizamos nas telas a seguir: mecanismos de transmissão de calor, condução unidimensional permanente, parede plana, equivalência elétrica.
+Conteúdos que utilizamos nas telas a seguir: mecanismos de transmissão de calor, condução unidimensional permanente, parede plana, equivalência elétrica.
 
 **Telas e conteúdos utilizados especificadamente**
 
