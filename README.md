@@ -21,7 +21,7 @@ Conteúdos que utilizamos nas telas a seguir: propriedades da matéria, pressão
 - **HeatTransferLab.jsx**
 
   - Introdução às formas de transferência de calor (condução, convecção, radiação).
-  - Cálculo de fluxos de calor (q'', Q̇) a partir de diferenças de temperatura.
+  - Cálculo de fluxos de calor ($q''$, $\dot{Q}$) a partir de diferenças de temperatura.
 
 - **MultiTankPressureControlGamePage.jsx**
 
@@ -33,7 +33,7 @@ Conteúdos que utilizamos nas telas a seguir: propriedades da matéria, pressão
 
 - **MaterialPropertiesLab.jsx**
 
-  - Visualização de propriedades (ρ, k, c_p, μ) e sua relação com energia armazenada e escoamento.
+  - Visualização de propriedades ($\rho$, $k$, $c_p$, $\mu$) e sua relação com energia armazenada e escoamento.
 
 ---
 
@@ -75,7 +75,7 @@ Conteúdos que utilizamos nas telas a seguir: mecanismos de transmissão de calo
 
     $$R_{\text{conv}} = \dfrac{1}{h}$$
 
-    Resistência de contato: valor informado em m²·K/W
+    Resistência de contato: valor informado em $m^2\cdot K/W$
 
     Série térmica:
 
@@ -83,13 +83,13 @@ Conteúdos que utilizamos nas telas a seguir: mecanismos de transmissão de calo
 
 - **MaterialPropertiesLab.jsx**
 
-  - Variação de k(T), c_p(T) e ρ(T) com a temperatura para diferentes materiais, relacionando propriedades termofísicas com a capacidade de condução e armazenamento de energia.
+  - Variação de $k(T)$, $c_p(T)$ e $\rho(T)$ com a temperatura para diferentes materiais, relacionando propriedades termofísicas com a capacidade de condução e armazenamento de energia.
 
 ---
 
 ### 🔹 Parte 3 – Mecânica dos Fluidos
 
-Conteudos que utilizamos nas telas a seguir: definição de fluido, propriedades, manometria, forças em superfícies submersas, empuxo, equações de conservação na forma integral, escoamento em dutos, equação de Bernoulli.
+Conteúdos que utilizamos nas telas a seguir: definição de fluido, propriedades, manometria, forças em superfícies submersas, empuxo, equações de conservação na forma integral, escoamento em dutos, equação de Bernoulli.
 
 **Telas e conteúdos utilizados especificadamente**
 
@@ -99,7 +99,7 @@ Conteudos que utilizamos nas telas a seguir: definição de fluido, propriedades
 
     $$P(h) = P_0 + \rho gh$$
 
-  - Comparação de fluidos (água, óleo, mercúrio) e conversão de unidades (Pa, kPa, bar, atm, psi).
+  - Comparação de fluidos (água, óleo, mercúrio) e conversão de unidades ($\text{Pa}$, $\text{kPa}$, $\text{bar}$, $\text{atm}$, $\text{psi}$).
 
   - Apoia os tópicos de **manometria**, **pressão em um ponto** e **variação de pressão em fluido estático**.
 
@@ -107,7 +107,7 @@ Conteudos que utilizamos nas telas a seguir: definição de fluido, propriedades
 
   - **Força hidrostática em comportas**:
 
-    $$F_h = \dfrac{1}{2}\rho g h_{\text{eff}}^2 w$$
+    $$F_h = \dfrac{1}{2}\rho\cdot g\cdot h_{\text{eff}}^2 \cdot w$$
 
   - **Escoamento por orifício**:
 
@@ -121,7 +121,7 @@ Conteudos que utilizamos nas telas a seguir: definição de fluido, propriedades
 
 - **MaterialPropertiesLab.jsx**
 
-  - ρ(T) e μ(T) → Visualização de **propriedades dos fluidos**.
+  - $\rho(T)$ e $\mu(T)$ → Visualização de **propriedades dos fluidos**.
 
 ---
 
@@ -166,13 +166,13 @@ $$P(h) = P_0 + \rho gh$$
 
    - Use os campos/controles para:
 
-     - Definir a **gravidade (g)**.
-     - Definir a **profundidade máxima (h)** que deseja analisar.
+     - Definir a **gravidade ($\text{g}$)**.
+     - Definir a **profundidade máxima ($\text{h}$)** que deseja analisar.
      - Definir o **número de pontos** do gráfico (quanto maior, mais suave o gráfico).
 
 3. **Escolher a unidade de pressão**
 
-   - Há uma seleção de unidades (Pa, kPa, bar, atm, psi).
+   - Há uma seleção de unidades ($\text{Pa}$, $\text{kPa}$, $\text{bar}$, $\text{atm}$, $\text{psi}$).
    - Clique na unidade que o professor prefere visualizar.
 
 4. **Ler o gráfico e o card de resultados**
@@ -203,9 +203,9 @@ $$P(h) = P_0 + \rho gh$$
 
 2. **Preencher as temperaturas**
 
-   - Para **condução**: informar as temperaturas nas faces (T₁ e T₂), o comprimento L da placa e a condutividade térmica k.
-   - Para **convecção**: informar a temperatura da superfície (Tₛ), a temperatura do fluido (T∞) e o coeficiente de convecção h.
-   - Para **radiação**: informar Tₛ, T_sur (temperatura do ambiente), emissividade ε.
+   - Para **condução**: informar as temperaturas nas faces ($T_1$ e $T_2$), o comprimento $L$ da placa e a condutividade térmica $k$.
+   - Para **convecção**: informar a temperatura da superfície ($T_s$), a temperatura do fluido ($T_\infty$) e o coeficiente de convecção $h$.
+   - Para **radiação**: informar $T_s$, $T_{\text{sur}}$ (temperatura do ambiente), emissividade $\varepsilon$.
 
 3. **Informar área e demais parâmetros**
 
@@ -217,8 +217,8 @@ $$P(h) = P_0 + \rho gh$$
    - O simulador mostra:
 
      - O **perfil de temperatura** (no caso da condução).
-     - O **fluxo de calor q''**.
-     - A **taxa total de calor Q̇**.
+     - O **fluxo de calor $q''$**.
+     - A **taxa total de calor $\dot{Q}$**.
 
    - Os resultados são recalculados automaticamente ao mudar qualquer valor.
 
@@ -228,16 +228,16 @@ $$P(h) = P_0 + \rho gh$$
 
 ![Laboratório de Propriedades](/public/material-properties-lab.png)
 
-- Banco de materiais com propriedades dependentes da temperatura T.
+- Banco de materiais com propriedades dependentes da temperatura $T$.
 - Gráficos de variação com a temperatura e gráfico radar.
 - Propriedades tratadas:
 
-  - densidade ρ(T)
-  - calor específico c_p(T)
-  - condutividade térmica k(T)
-  - viscosidade dinâmica μ(T)
+  - densidade $\rho(T)$
+  - calor específico $c_p(T)$
+  - condutividade térmica $k(T)$
+  - viscosidade dinâmica $\mu(T)$
 
-> **Relaciona-se com:** propriedades da matéria, influência de ρ, μ, k e c_p em escoamentos e transferência de calor.
+> **Relaciona-se com:** propriedades da matéria, influência de $\rho$, $\mu$, $k$ e $c_p$ em escoamentos e transferência de calor.
 
 #### Como usar esta tela
 
@@ -258,10 +258,10 @@ $$P(h) = P_0 + \rho gh$$
 
    - São exibidos gráficos de:
 
-     - **ρ(T)** – densidade.
-     - **c_p(T)** – calor específico.
-     - **k(T)** – condutividade térmica.
-     - **μ(T)** – viscosidade dinâmica.
+     - **$\rho(T)$** – densidade.
+     - **$c_p(T)$** – calor específico.
+     - **$k(T)$** – condutividade térmica.
+     - **$\mu(T)$** – viscosidade dinâmica.
 
    - Cada gráfico mostra a **dependência com a temperatura**.
 
@@ -274,8 +274,8 @@ $$P(h) = P_0 + \rho gh$$
 
    - Troque o material na lista e observe como:
 
-     - Materiais com **alta condutividade térmica (k)** são melhores condutores de calor.
-     - Materiais com **alta viscosidade (μ)** tendem a escoar com mais “resistência”.
+     - Materiais com **alta condutividade térmica ($k$)** são melhores condutores de calor.
+     - Materiais com **alta viscosidade ($\mu$)** tendem a escoar com mais “resistência”.
 
 ---
 
@@ -295,7 +295,7 @@ Montagem interativa de sistemas térmicos com suporte a **resistências em séri
 
   $$R_{\text{conv}} = \dfrac{1}{h}$$
 
-- **Resistência de contato (opcional):** valor informado em m²·K/W
+- **Resistência de contato (opcional):** valor informado em $m^2\cdot K/W$
 
 **Combinação de resistências:**
 
@@ -330,17 +330,16 @@ Montagem interativa de sistemas térmicos com suporte a **resistências em séri
 1. **Entender a tela (3 colunas)**
 
    - **Esquerda – “Materiais disponíveis”**
-     Lista de cartões com materiais (Concreto, Tijolo, EPS, Vidro etc.). Cada cartão mostra k, espessura padrão e R aproximado.
+     Lista de cartões com materiais (Concreto, Tijolo, EPS, Vidro etc.). Cada cartão mostra $k$, espessura padrão e $R$ aproximado.
    - **Centro – “Composição do sistema”**
      Área onde você monta a parede/sistema térmico: convecção externa → camadas → contatos → convecção interna.
    - **Direita – “Resultados de resistência térmica”**
-     Mostra o **R_total** e o detalhamento de cada parte (camadas, convecções, contatos, grupos em paralelo).
-
+     Mostra o **$R_{\text{total}}$** e o detalhamento de cada parte (camadas, convecções, contatos, grupos em paralelo).
 2. **Montar uma parede simples (camadas em série)**
 
    1. Na coluna da **esquerda**, clique e **arraste** um material (por exemplo, _Concreto_) para a área central cinza onde aparece o texto _“Arraste materiais da lista à esquerda para iniciar o sistema”_.
    2. Para adicionar outras camadas (Tijolo, EPS, Gesso etc.), basta **arrastar mais materiais** um abaixo do outro para essa mesma área.
-   3. Em cada cartão de camada, ajuste a **espessura L (m)** no campo `Espessura L (m)`.
+   3. Em cada cartão de camada, ajuste a **espessura $L$ ($\text{m}$)** no campo `Espessura L (m)`.
    4. Se quiser trocar o material de uma camada já criada, use o campo **“Material”** dentro do próprio cartão.
 
 3. **Configurar convecção externa e interna**
@@ -350,8 +349,8 @@ Montagem interativa de sistemas térmicos com suporte a **resistências em séri
    - Em cada um deles:
 
      1. Use o interruptor **“Considerar convecção”** para ligar/desligar a convecção daquele lado.
-     2. Preencha o valor de **h (W/m²·K)**.
-     3. A calculadora mostra automaticamente o valor de **R_conv ≈ 1/h** no _chip_ ao lado.
+     2. Preencha o valor de **$h (W/m^2\cdot K)$**.
+     3. A calculadora mostra automaticamente o valor de **$R_{\text{conv}} \approx 1/h$** no _chip_ ao lado.
 
 4. **Adicionar resistência de contato entre camadas**
 
@@ -369,7 +368,7 @@ Montagem interativa de sistemas térmicos com suporte a **resistências em séri
    2. No cartão dessa camada, clique no botão com o ícone **“+”** (dica de ferramenta: _“Adicionar camada em paralelo”_).
    3. A calculadora cria uma nova camada **ao lado**, formando um grupo em paralelo (bordas destacadas e fundo levemente colorido).
    4. Você pode mudar o material e a espessura dessa nova camada normalmente.
-   5. Todas as camadas com borda destacada fazem parte do **mesmo grupo em paralelo**, e a ferramenta calcula automaticamente o **R_eq** desse grupo.
+   5. Todas as camadas com borda destacada fazem parte do **mesmo grupo em paralelo**, e a ferramenta calcula automaticamente o **$R_\text{eq}$** desse grupo.
 
 6. **Reorganizar ou remover camadas**
 
@@ -380,7 +379,7 @@ Montagem interativa de sistemas térmicos com suporte a **resistências em séri
 
    - Na coluna da **direita**, a parte superior mostra:
 
-     - `R_total = ... m²·K/W` (considerando área de 1 m²).
+     - `R_total = ... m²·K/W` (considerando área de $1 \text{m}^2$).
 
    - Abaixo, em **“Detalhamento por elemento”**, aparece uma lista indicando:
 
@@ -444,8 +443,8 @@ Jogo interativo para controlar 10 tanques hidráulicos com comportas, evitando f
    - Um **interruptor ON/OFF** para abrir/fechar a comporta.
    - Indicadores numéricos de:
 
-     - Vazão de entrada (Q_in).
-     - Vazão de saída (Q_out).
+     - Vazão de entrada ($Q_{\text{in}}$).
+     - Vazão de saída ($Q_{\text{out}}$).
      - Força na comporta e/ou utilização em %.
 
 3. **Controlar as comportas**
