@@ -39,3 +39,58 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# python venv
+.venv/
+__pycache__/
+# LaTeX build files
+*.aux
+*.log
+*.toc
+*.out
+*.synctex.gz
+*.acn
+*.acr
+*.alg
+*.bbl
+*.blg
+*.glg
+*.glo
+*.gls
+*.ist
+*.lof
+*.lot
+*.maf
+*.mtc
+*.mtc1
+*.nlg
+*.nlo
+*.slg
+*.slo
+*.stg
+*.stt
+*.xdy
+*.tdo
+*.fdb_latexmk
+*.fls
+*.synctex
+*.synctex(busy)
+*.nav
+*.snm
+# Generated files
+*.dvi
+*.ps
+#*.pdf
+# Editor and IDE files
+*.swp
+*~
+#*
+*.bak
+*.backup
+*.sav
+*.tmproj
+*.tmproj.*
+*.sublime-workspace
+*.sublime-project
+vscode/
+idea/
