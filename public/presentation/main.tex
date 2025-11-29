@@ -1,9 +1,17 @@
 \documentclass{beamer}
 \usetheme{metropolis}
 
-\title{FETRANS Lab — Simulador de Fenômenos de Transporte}
+\title{FETRANS Lab \\— Simulador de Fenômenos de Transporte}
+\subtitle{
+  \ \ \ \ \ \ \href{https://fetrans-lab.vercel.app}{fetrans-lab.vercel.app}
+}
 \author{Régis, Luan}
-\date{\today}
+\date{Novembro de 2025}
+
+% Todo:
+% - Adicionar screenshots nos slides de demonstração
+% - Aprofundar explicação teórica durante demonstração. Com foco em:  Descrição dos conceitos usados (Breve), descrição de como os conceitos são aplicados, e descrição das principais fórmulas e variáveis usadas em cada tela (breve).
+% - Adicionar passos futuros.
 
 \begin{document}
 
@@ -11,7 +19,7 @@
 \frame{\titlepage}
 
 % Índice/roteiro
-\begin{frame}{Roteiro}
+\begin{frame}{Índice}
   \tableofcontents
 \end{frame}
 
@@ -47,72 +55,172 @@
 \section{Demonstração}
 \subsection{Pressão hidrostática}
 \begin{frame}{Simulador de Pressão Hidrostática}
-  \textbf{Fórmula principal:}
-  \[ P(h) = P_0 + \rho g h \]
-  \vspace{6pt}
+  \textbf{Captura de tela do simulador:}
+  \includegraphics[width=\textwidth]{../simulador-pressao.png}
+  \textbf{Aplicação:} % Objetivo principal do laboratório
+  Visualizar a variação da pressão hidrostática com a profundidade em diferentes fluidos.
+\end{frame}
+
+\begin{frame}{Simulador de Pressão Hidrostática}
+  \textbf{Funcionalidades:}
   \begin{itemize}
-    \item Pressão em função da profundidade; comparação entre fluidos (água, óleo, mercúrio).
+    \item Desenha gráfico da pressão em função da profundidade.
+    \item Permite comparação entre fluidos (água, óleo, mercúrio).
     \item Conversão de unidades: Pa, kPa, bar, atm, psi.
-    \item Interface: seleção de fluido, ajuste de $\rho$, $g$, profundidade e pontos do gráfico.
+    \item Interface: seleção de fluido, ajuste de $\rho$, $g$, profundidade e quantidade de pontos no gráfico.
   \end{itemize}
+  \vspace{6pt}
+  \textbf{Fórmula da pressão hidrostática:}
+  \[ P(h) = P_0 + \rho g h \]
+  , onde $P_0$ é a pressão na superfície, $\rho$ é a densidade do fluido, $g$ é a aceleração gravitacional e $h$ é a profundidade.
 \end{frame}
 
 \subsection{Transferência de calor}
 \begin{frame}{Laboratório de Transferência de Calor}
-  \textbf{Condução (placa 1D, estado estacionário)}:
-  \[ T(x) = T_1 + (T_2 - T_1)\frac{x}{L}, \quad q'' = -k\frac{dT}{dx} \]
-  \vspace{4pt}
-  \textbf{Convecção (Lei de Newton)}:
-  \[ q'' = h(T_s - T_\infty) \]
-  \vspace{4pt}
-  \textbf{Radiação (superfície cinza)}:
-  \[ q'' = \varepsilon\sigma( T_s^4 - T_{sur}^4 ) \]
-  \vspace{6pt}
+  \textbf{Captura de tela do simulador:}
+  \includegraphics[width=\textwidth]{../heat-transfer-lab.png}
+  \textbf{Aplicação:} % Objetivo principal do laboratório
+  Explorar os três modos de transferência de calor: condução, convecção e radiação.
+\end{frame}
+
+\begin{frame}{Laboratório de Transferência de Calor - Condução}
+  \textbf{Funcionalidades:}
   \begin{itemize}
-    \item Modo de operação selecionável (Condução / Convecção / Radiação).
-    \item Entradas: temperaturas, $k$, $h$, $\varepsilon$, área $A$ — gráficos de perfil e valores de $\dot Q$.
+    \item Simulação de condução em uma placa 1D em estado estacionário.
+    \item Entrada de parâmetros: temperaturas nas faces, condutividade térmica $k$, comprimento $L$ e área $A$.
+    \item Cálculo do perfil de temperatura e fluxo de calor $\dot Q$.
   \end{itemize}
+  \vspace{6pt}
+  \textbf{Fórmulas-chave:} \\
+  Perfil de temperatura em placa 1D em regime estacionário:
+  \[ T(x) = T_1 + (T_2 - T_1)\frac{x}{L}\]
+  Gradiente de temperatura, fluxo de calor por unidade de área, e taxa total de transferência de calor:
+  \[\dfrac{dT}{dx} = \dfrac{T_2 - T_1}{L}, \quad q'' = -k\dfrac{dT}{dx}, \quad \dot{Q} = q''A \]
+\end{frame}
+
+\begin{frame}{Laboratório de Transferência de Calor - Convecção}
+  \textbf{Funcionalidades:}
+  \begin{itemize}
+    \item Simulação de convecção em uma superfície plana.
+    \item Entradas: temperatura da superfície $T_s$, temperatura do fluido $T_\infty$, coeficiente de convecção $h$, área $A$.
+    \item Cálculo do fluxo convectivo $q''$ e Taxa de calor $\dot{Q}$.
+  \end{itemize}
+  \vspace{6pt}
+  \textbf{Lei de Resfriamento de Newton:}
+  \[ \dot{Q} = h \cdot A \cdot (T_s - T_\infty) \]
+  Aqui supõe-se  $h$ uniforme e escoamento externo simples.
+\end{frame}
+
+\begin{frame}{Laboratório de Transferência de Calor - Radiação}
+  \textbf{Funcionalidades:}
+  \begin{itemize}
+    \item Simulação de troca de calor por radiação. De superfície cinza para ambiente grande.
+    \item Entradas: temperaturas $T_1$, $T_2$, emissividade $\varepsilon$ (constante), área $A$.
+    \item Cálculo do fluxo radiativo $q''$ e taxa de calor $\dot{Q}$.
+  \end{itemize}
+  \vspace{6pt}
+  \textbf{Lei de Stefan-Boltzmann} aplicada à radiação entre superfície e ambiente:
+  \[q'' = \varepsilon \sigma (T_s^4 - T_{\text{sur}}^4)\]
+  \textbf{Taxa total de transferência de calor:}
+  \[\dot{Q} = q'' A\]
 \end{frame}
 
 \subsection{Propriedades dos materiais}
 \begin{frame}{Laboratório de Propriedades dos Materiais}
+  \textbf{Captura de tela do simulador:}
+  \includegraphics[width=\textwidth]{../material-properties-lab.png}
+  \textbf{Aplicação:} % Objetivo principal do laboratório
+  Visualizar como as propriedades dos materiais variam com a temperatura.
+\end{frame}
+
+\begin{frame}{Laboratório de Propriedades dos Materiais}
+  \textbf{Funcionalidades:}
   \begin{itemize}
-    \item Propriedades dependentes da temperatura: $\rho(T)$, $c_p(T)$, $k(T)$, $\mu(T)$.
-    \item Visualizações: séries temporais / variação com $T$ e gráfico radar para comparações.
-    \item Aplicação: entender como propriedades influenciam condução, armazenamento de energia e escoamento.
+    \item Simulação interativa de propriedades térmicas e físicas de materiais comuns.
+    \item Visualização gráfica das propriedades em função da temperatura.
+    \item Comparação multidimensional de propriedades entre materiais.
+    \item Seleção de materiais: metais, cerâmicas, polímeros, líquidos, e gases.
+    \item Seleção de propriedades:
+    \begin{itemize}
+      \item Densidade $\rho(T)$
+      \item Calor Específico $c_p(T)$
+      \item Condutividade Térmica $k(T)$
+      \item Viscosidade $\mu(T)$
+    \end{itemize}
   \end{itemize}
 \end{frame}
 
 \subsection{Calculadora de resistência térmica}
+
 \begin{frame}{Calculadora de Resistência Térmica}
-  \textbf{Fórmulas-chave}
-  \[ R_{cond} = \frac{L}{k}, \quad R_{conv} = \frac{1}{h} \]
-  \[ R_{total}^{(serie)} = \sum_i R_i, \quad \frac{1}{R_{eq}^{(paralelo)}} = \sum_i \frac{1}{R_i} \]
-  \vspace{6pt}
+  \textbf{Captura de tela do simulador:}
+  \includegraphics[width=\textwidth]{../thermal-system.png}
+  \textbf{Aplicação:} % Objetivo principal do laboratório
+  Calcular a resistência térmica total de sistemas compostos por múltiplas camadas e mecanismos de transferência de calor.
+\end{frame}
+
+\begin{frame}{Calculadora de Resistência Térmica}
+  \textbf{Funcionalidades:}
   \begin{itemize}
-    \item Montagem interativa: camadas em série, grupos em paralelo, resistências de contato e convecção.
-    \item Resultado exibido para área de 1 m$^2$ com detalhamento por elemento.
+    \item Construção interativa de sistemas térmicos com múltiplas camadas.
+    \item Cálculo automático da resistência térmica total $R_{total}$.
+    \item Suporte para condução entre camadas e convecção externa.
+    % A Implementar: \item Visualização do fluxo de calor $\dot{Q}$ através do sistema.
   \end{itemize}
+  \vspace{6pt}
+  \textbf{Resistência térmica por condução e convecção:}
+  \[ R_{cond} = \frac{L}{kA}, \quad R_{conv} = \frac{1}{hA} \]
+  \textbf{Resistência térmica equivalente em série e paralelo:}
+  \[ R_{\text{série}} = \sum R_i, \quad R_{\text{paralelo}} = \left(\sum \frac{1}{R_i}\right)^{-1} \]
 \end{frame}
 
 \subsection{Jogo de tanques}
 \begin{frame}{Jogo: Controle de Tanques Pressurizados}
-  \textbf{Conceitos principais}
-  \[ F_h = \tfrac{1}{2}\rho g h_{eff}^2 w, \qquad Q_{out} = C_d A_{orif}\sqrt{2 g h} \]
-  \vspace{6pt}
+  \textbf{Captura de tela do simulador:}
+  \includegraphics[width=\textwidth]{../multitank-game.png}
+  \textbf{Aplicação:} % Objetivo principal do laboratório
+  Aplicar conceitos de mecânica dos fluidos e controle em um jogo interativo.
+\end{frame}
+
+\begin{frame}{Jogo: Controle de Tanques Pressurizados}
+  \textbf{Funcionalidades:}
   \begin{itemize}
-    \item Mecânica do jogo: controlar comportas (ON/OFF) para evitar sobrepressão e nível seco.
-    \item Modelagem: balanço de massa $dV/dt = Q_{in} - Q_{out}$, eventos aleatórios e condições de falha.
-    \item Objetivo: manter 10 tanques estáveis por 90 s.
+    \item Monitore e controle níveis de líquido em múltiplos tanques.
+    \item Dimensões e material da comporta ajustáveis.
+    \item Eventos aleatórios para aumentar o desafio.
+    \item Condição de falha: Nível seco ou sobrepressão por mais de 5s.
+    % Tanque tem volume fixo, 15m2 de base, 5m de altura.
+  \end{itemize}
+  
+\textbf{Força hidrostática na comporta:}
+  $$F_h = \dfrac{1}{2}\rho g h_{\text{eff}}^2 w$$
+\textbf{Escoamento por orifício:}
+  $$Q_{\text{out}} = C_d A_{\text{comporta}}\sqrt{2gh}, \quad C_d = 0{,}62$$
+\textbf{Balanço de massa:}
+  $$\dfrac{dV}{dt} = Q_{\text{in}} - Q_{\text{out}}$$
+\end{frame}
+
+\section{Próximos passos e palavras finais}
+\begin{frame}{Próximos passos}
+  \begin{itemize}
+    \item Adicionar suporte a mais materiais, propriedades e customizações.
+    \item Aprimorar laboratório de transferência de calor com mais cenários.
+    \item Adicionar visualização do perfil de temperatura na Calculadora de resistência térmica.
+    \item Adição de mais simulações e tópicos avançados.
+    \item Melhorias na interface e usabilidade.
+    \item Feedback de usuários para aprimorar a ferramenta.
   \end{itemize}
 \end{frame}
 
-\section{Conclusão}
-\begin{frame}{Conclusão e links}
+\begin{frame}{Palavras finais}
+  Com esse trabalho, esperamos contribuir para o aprendizado de Fenômenos de Transporte, oferecendo uma ferramenta interativa e acessível para estudantes e educadores.\\
+  \vspace{4pt}
+  Agradecemos a atenção de todos!\\
+  \vspace{14pt}
+  \textbf{Links úteis:}
   \begin{itemize}
-    \item Ferramenta educacional para apoiar o ensino de Fenômenos de Transporte.
-    \item Código e demo hospedados em: \texttt{https://fetrans-lab.vercel.app}
-    \item Próximos passos: adicionar screenshots nas lâminas, compilar PDF e ajustar tempo de apresentação.
+    \item Aplicação hospedada em: \texttt{https://fetrans-lab.vercel.app}
+    \item Código-fonte no GitHub: \texttt{https://github.com/RegisBloemer/simulador-pressao}
   \end{itemize}
 \end{frame}
 
