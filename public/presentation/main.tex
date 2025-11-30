@@ -192,12 +192,13 @@
     % Tanque tem volume fixo, 15m2 de base, 5m de altura.
   \end{itemize}
   
+  % Lembrar de explicar as fórmulas usadas no modelo, elemento por elemento e como eles afetam.
 \textbf{Força hidrostática na comporta:}
   $$F_h = \dfrac{1}{2}\rho g h_{\text{eff}}^2 w$$
 \textbf{Escoamento por orifício:}
   $$Q_{\text{out}} = C_d A_{\text{comporta}}\sqrt{2gh}, \quad C_d = 0{,}62$$
-\textbf{Balanço de massa:}
-  $$\dfrac{dV}{dt} = Q_{\text{in}} - Q_{\text{out}}$$
+\textbf{Volume de água:}
+  $$  V(t+\Delta t) = V(t) + (Q_{in} - Q_{out}) \cdot \Delta t, \quad \dfrac{dV}{dt} = Q_{\text{in}} - Q_{\text{out}}$$
 \end{frame}
 
 \section{Próximos passos e palavras finais}
